@@ -5,6 +5,7 @@ import { type Metadata } from "next";
 import { Geist } from "next/font/google";
 
 import { TRPCReactProvider } from "~/trpc/react";
+import { MainNavigation } from "~/components/main-navigation";
 
 export const metadata: Metadata = {
   title: "Create T3 App",
@@ -24,7 +25,10 @@ export default function RootLayout({
     <html lang="en" className={`${geist.variable}`}>
       <body>
         <AuthKitProvider>
-          <TRPCReactProvider>{children}</TRPCReactProvider>
+          <TRPCReactProvider>
+            <MainNavigation />
+            <main>{children}</main>
+          </TRPCReactProvider>
         </AuthKitProvider>
       </body>
     </html>
