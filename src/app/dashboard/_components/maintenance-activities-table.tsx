@@ -1,4 +1,5 @@
-import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
+import React from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import {
   Table,
   TableBody,
@@ -6,16 +7,16 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "~/components/ui/table"
-import { Badge } from "~/components/ui/badge"
+} from "~/components/ui/table";
+import { Badge } from "~/components/ui/badge";
 
 interface MaintenanceActivity {
-  id: string
-  type: string
-  sector: string
-  activity: string
-  date: string
-  status: "COMPLETED" | "IN PROGRESS" | "SCHEDULED"
+  id: string;
+  type: string;
+  sector: string;
+  activity: string;
+  date: string;
+  status: "COMPLETED" | "IN PROGRESS" | "SCHEDULED";
 }
 
 const activities: MaintenanceActivity[] = [
@@ -59,18 +60,18 @@ const activities: MaintenanceActivity[] = [
     date: "2025-09-20",
     status: "SCHEDULED",
   },
-]
+];
 
 function getStatusVariant(status: MaintenanceActivity["status"]) {
   switch (status) {
     case "COMPLETED":
-      return "default"
+      return "default";
     case "IN PROGRESS":
-      return "secondary"
+      return "secondary";
     case "SCHEDULED":
-      return "outline"
+      return "outline";
     default:
-      return "outline"
+      return "outline";
   }
 }
 
@@ -97,14 +98,23 @@ export function MaintenanceActivitiesTable() {
               {activities.map((activity) => (
                 <TableRow key={activity.id}>
                   <TableCell className="font-medium">
-                    <a href={`#${activity.id}`} className="text-blue-600 hover:underline">
+                    <a
+                      href={`#${activity.id}`}
+                      className="text-blue-600 hover:underline"
+                    >
                       {activity.id}
                     </a>
                   </TableCell>
-                  <TableCell className="hidden md:table-cell">{activity.type}</TableCell>
-                  <TableCell className="hidden lg:table-cell">{activity.sector}</TableCell>
+                  <TableCell className="hidden md:table-cell">
+                    {activity.type}
+                  </TableCell>
+                  <TableCell className="hidden lg:table-cell">
+                    {activity.sector}
+                  </TableCell>
                   <TableCell>{activity.activity}</TableCell>
-                  <TableCell className="hidden sm:table-cell">{activity.date}</TableCell>
+                  <TableCell className="hidden sm:table-cell">
+                    {activity.date}
+                  </TableCell>
                   <TableCell>
                     <Badge variant={getStatusVariant(activity.status)}>
                       {activity.status}
@@ -117,5 +127,5 @@ export function MaintenanceActivitiesTable() {
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }
