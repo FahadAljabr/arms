@@ -1,10 +1,23 @@
 # 🚀 ARMS - Asset Readiness Management System
 
-A comprehensive digital maintenance tracking system for military and security vehicles and weapons, built with modern web technologies.
+**Senior Project - Information Systems Department**  
+**Prince Sultan University**
+
+A comprehensive digital maintenance tracking system prototype for military and security vehicles and weapons, built with modern web technologies as a senior capstone project.
 
 ## 📋 Project Overview
 
-**ARMS (Asset Readiness Management System)** is a full-stack web application designed to replace traditional paper-based maintenance logs with a modern, efficient digital solution. The system provides real-time tracking, scheduling, and management of vehicle and weapon maintenance across different security sectors (Police, Traffic Police, Military Police).
+**ARMS (Asset Readiness Management System)** is a full-stack web application prototype developed as an academic demonstration of modern software development practices. This senior project showcases how traditional paper-based maintenance logs can be replaced with a modern, efficient digital solution.
+
+**🎓 Academic Context:**
+
+- **University:** Prince Sultan University
+- **Department:** Information Systems
+- **Project Type:** Senior Capstone Project
+- **Purpose:** Prototype demonstration of enterprise-level maintenance management system
+
+**💡 Concept Demonstration:**
+This project serves as a proof-of-concept for digital transformation in maintenance management, demonstrating real-world application of learned technologies and methodologies. The system provides real-time tracking, scheduling, and management of vehicle and weapon maintenance across different security sectors (Police, Traffic Police, Military Police).
 
 ### 🎯 Key Features
 
@@ -204,12 +217,34 @@ pnpm db:studio        # Open Drizzle Studio
 
 ## 📄 License
 
-This project is private and proprietary. Unauthorized copying, distribution, or modification is prohibited.
+**Open Source License (Copyleft)**
+
+This project is released under an open source copyleft license. You are free to:
+
+- ✅ Use this software for any purpose
+- ✅ Study and modify the source code
+- ✅ Distribute copies of the software
+- ✅ Distribute modified versions
+
+**⚠️ Copyleft Requirement:** If you use this software in your own projects, you must also make your project open source under the same license terms. This ensures that improvements and modifications remain available to the community.
+
+## 🎓 Academic Project
+
+This is a **senior capstone project** from Prince Sultan University's Information Systems program, designed to demonstrate:
+
+- Modern full-stack web development practices
+- Enterprise software architecture patterns
+- Real-world problem-solving through technology
+- Integration of multiple modern technologies and APIs
 
 ## 📞 Support & Contact
 
-For technical support or project inquiries, please contact the development team.
+**Academic Supervisor:** [Supervisor Name]  
+**Student Developer:** Fahd Aljabr  
+**Institution:** Prince Sultan University - Information Systems Department
+
+For academic inquiries or technical questions about this prototype, please contact through university channels.
 
 ---
 
-**Built with ❤️ using the T3 Stack and modern web technologies**
+**Built with ❤️ at Prince Sultan University using the T3 Stack and modern web technologies**
