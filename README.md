@@ -239,7 +239,7 @@ This is a **senior capstone project** from Prince Sultan University's Informatio
 
 ## 📞 Support & Contact
 
-**Student Developer:** Fahd Aljabr
+**Student Developer:** Fahad Aljabr
 **Institution:** Prince Sultan University - Department of Computer & Information Sciences
 
 For academic inquiries or technical questions about this prototype, please contact through university channels.
