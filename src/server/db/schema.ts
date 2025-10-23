@@ -59,7 +59,9 @@ export const roles = createTable(
   (t) => ({
     id: t.integer().primaryKey().generatedByDefaultAsIdentity(),
     roleName: t.varchar({ length: 50 }).notNull(),
-    createdAt: t.timestamp({ withTimezone: true }).default(sql`CURRENT_TIMESTAMP`),
+    createdAt: t
+      .timestamp({ withTimezone: true })
+      .default(sql`CURRENT_TIMESTAMP`),
   }),
   (tbl) => [uniqueIndex("roles_role_name_unique").on(tbl.roleName)],
 );
@@ -74,10 +76,15 @@ export const users = createTable(
     roleId: t
       .integer()
       .notNull()
-      .references(() => roles.id, { onDelete: "restrict", onUpdate: "cascade" }),
+      .references(() => roles.id, {
+        onDelete: "restrict",
+        onUpdate: "cascade",
+      }),
     isActive: t.boolean().notNull().default(true),
     lastLoginAt: t.timestamp({ withTimezone: true }),
-    createdAt: t.timestamp({ withTimezone: true }).default(sql`CURRENT_TIMESTAMP`),
+    createdAt: t
+      .timestamp({ withTimezone: true })
+      .default(sql`CURRENT_TIMESTAMP`),
     updatedAt: t
       .timestamp({ withTimezone: true })
       .default(sql`CURRENT_TIMESTAMP`)
@@ -94,7 +101,9 @@ export const sectors = createTable(
   (t) => ({
     id: t.integer().primaryKey().generatedByDefaultAsIdentity(),
     sectorName: t.varchar({ length: 100 }).notNull(),
-    createdAt: t.timestamp({ withTimezone: true }).default(sql`CURRENT_TIMESTAMP`),
+    createdAt: t
+      .timestamp({ withTimezone: true })
+      .default(sql`CURRENT_TIMESTAMP`),
     updatedAt: t
       .timestamp({ withTimezone: true })
       .default(sql`CURRENT_TIMESTAMP`)
@@ -114,13 +123,18 @@ export const assets = createTable(
     sectorId: t
       .integer()
       .notNull()
-      .references(() => sectors.id, { onDelete: "restrict", onUpdate: "cascade" }),
+      .references(() => sectors.id, {
+        onDelete: "restrict",
+        onUpdate: "cascade",
+      }),
     currentKm: t.integer(),
     lastServiceAt: t.timestamp({ withTimezone: true }),
     commissionedAt: t.timestamp({ withTimezone: true }),
     decommissionedAt: t.timestamp({ withTimezone: true }),
     riskScore: doublePrecision(),
-    createdAt: t.timestamp({ withTimezone: true }).default(sql`CURRENT_TIMESTAMP`),
+    createdAt: t
+      .timestamp({ withTimezone: true })
+      .default(sql`CURRENT_TIMESTAMP`),
     updatedAt: t
       .timestamp({ withTimezone: true })
       .default(sql`CURRENT_TIMESTAMP`)
@@ -140,15 +154,24 @@ export const maintenanceRecords = createTable(
     assetId: t
       .integer()
       .notNull()
-      .references(() => assets.id, { onDelete: "restrict", onUpdate: "cascade" }),
+      .references(() => assets.id, {
+        onDelete: "restrict",
+        onUpdate: "cascade",
+      }),
     // Note: Users.id is varchar(100), here spec asks for varchar(64). It's okay as values will fit.
     technicianId: t
       .varchar({ length: 64 })
       .notNull()
-      .references(() => users.id, { onDelete: "restrict", onUpdate: "cascade" }),
+      .references(() => users.id, {
+        onDelete: "restrict",
+        onUpdate: "cascade",
+      }),
     officerId: t
       .varchar({ length: 64 })
-      .references(() => users.id, { onDelete: "set null", onUpdate: "cascade" }),
+      .references(() => users.id, {
+        onDelete: "set null",
+        onUpdate: "cascade",
+      }),
     issueDate: t.timestamp({ withTimezone: true }).notNull(),
     completionDate: t.timestamp({ withTimezone: true }),
     problemDescription: t.text().notNull(),
@@ -158,7 +181,9 @@ export const maintenanceRecords = createTable(
     downtimeHours: t.integer(),
     severity: severityEnum("severity"),
     category: t.varchar({ length: 50 }),
-    createdAt: t.timestamp({ withTimezone: true }).default(sql`CURRENT_TIMESTAMP`),
+    createdAt: t
+      .timestamp({ withTimezone: true })
+      .default(sql`CURRENT_TIMESTAMP`),
     updatedAt: t
       .timestamp({ withTimezone: true })
       .default(sql`CURRENT_TIMESTAMP`)
@@ -180,7 +205,9 @@ export const spareParts = createTable(
     unitCost: numeric({ precision: 12, scale: 2 }),
     reorderThreshold: t.integer().default(0),
     quantityOnHand: t.integer().notNull().default(0),
-    createdAt: t.timestamp({ withTimezone: true }).default(sql`CURRENT_TIMESTAMP`),
+    createdAt: t
+      .timestamp({ withTimezone: true })
+      .default(sql`CURRENT_TIMESTAMP`),
     updatedAt: t
       .timestamp({ withTimezone: true })
       .default(sql`CURRENT_TIMESTAMP`)
@@ -198,15 +225,24 @@ export const maintenanceRecordParts = createTable(
     recordId: t
       .integer()
       .notNull()
-      .references(() => maintenanceRecords.id, { onDelete: "cascade", onUpdate: "cascade" }),
+      .references(() => maintenanceRecords.id, {
+        onDelete: "cascade",
+        onUpdate: "cascade",
+      }),
     partId: t
       .integer()
       .notNull()
-      .references(() => spareParts.id, { onDelete: "restrict", onUpdate: "cascade" }),
+      .references(() => spareParts.id, {
+        onDelete: "restrict",
+        onUpdate: "cascade",
+      }),
     quantityUsed: t.integer().notNull(),
   }),
   (tbl) => [
-    primaryKey({ name: "maintenance_record_parts_pk", columns: [tbl.recordId, tbl.partId] }),
+    primaryKey({
+      name: "maintenance_record_parts_pk",
+      columns: [tbl.recordId, tbl.partId],
+    }),
   ],
 );
 
@@ -217,13 +253,18 @@ export const maintenancePlans = createTable(
     assetId: t
       .integer()
       .notNull()
-      .references(() => assets.id, { onDelete: "cascade", onUpdate: "cascade" }),
+      .references(() => assets.id, {
+        onDelete: "cascade",
+        onUpdate: "cascade",
+      }),
     planDescription: t.text().notNull(),
     frequencyKm: t.integer(),
     frequencyDays: t.integer(),
     nextDueDate: date(),
     lastMaintenanceKm: t.integer(),
-    createdAt: t.timestamp({ withTimezone: true }).default(sql`CURRENT_TIMESTAMP`),
+    createdAt: t
+      .timestamp({ withTimezone: true })
+      .default(sql`CURRENT_TIMESTAMP`),
     updatedAt: t
       .timestamp({ withTimezone: true })
       .default(sql`CURRENT_TIMESTAMP`)
@@ -232,25 +273,24 @@ export const maintenancePlans = createTable(
   (tbl) => [uniqueIndex("maintenance_plans_asset_unique").on(tbl.assetId)],
 );
 
-export const auditLogs = createTable(
-  "audit_logs",
-  (t) => ({
-    id: t.integer().primaryKey().generatedByDefaultAsIdentity(),
-    userId: t.varchar({ length: 64 }).references(() => users.id, {
-      onDelete: "set null",
-      onUpdate: "cascade",
-    }),
-    actionType: t.varchar({ length: 50 }).notNull(),
-    tableName: t.varchar({ length: 50 }),
-    recordId: t.integer(),
-    details: t.text(), // JSON string
-    ipAddress: t.varchar({ length: 64 }),
-    userAgent: t.varchar({ length: 255 }),
-    prevHash: t.varchar({ length: 128 }),
-    rowHash: t.varchar({ length: 128 }),
-    createdAt: t.timestamp({ withTimezone: true }).default(sql`CURRENT_TIMESTAMP`),
+export const auditLogs = createTable("audit_logs", (t) => ({
+  id: t.integer().primaryKey().generatedByDefaultAsIdentity(),
+  userId: t.varchar({ length: 64 }).references(() => users.id, {
+    onDelete: "set null",
+    onUpdate: "cascade",
   }),
-);
+  actionType: t.varchar({ length: 50 }).notNull(),
+  tableName: t.varchar({ length: 50 }),
+  recordId: t.integer(),
+  details: t.text(), // JSON string
+  ipAddress: t.varchar({ length: 64 }),
+  userAgent: t.varchar({ length: 255 }),
+  prevHash: t.varchar({ length: 128 }),
+  rowHash: t.varchar({ length: 128 }),
+  createdAt: t
+    .timestamp({ withTimezone: true })
+    .default(sql`CURRENT_TIMESTAMP`),
+}));
 
 // =====================
 // Relations
@@ -325,12 +365,15 @@ export const maintenanceRecordPartsRelations = relations(
   }),
 );
 
-export const maintenancePlansRelations = relations(maintenancePlans, ({ one }) => ({
-  asset: one(assets, {
-    fields: [maintenancePlans.assetId],
-    references: [assets.id],
+export const maintenancePlansRelations = relations(
+  maintenancePlans,
+  ({ one }) => ({
+    asset: one(assets, {
+      fields: [maintenancePlans.assetId],
+      references: [assets.id],
+    }),
   }),
-}));
+);
 
 export const auditLogsRelations = relations(auditLogs, ({ one }) => ({
   user: one(users, {
@@ -355,18 +398,23 @@ export const selectSectorSchema = createSelectSchema(sectors);
 export const insertAssetSchema = createInsertSchema(assets);
 export const selectAssetSchema = createSelectSchema(assets);
 
-export const insertMaintenanceRecordSchema = createInsertSchema(maintenanceRecords);
-export const selectMaintenanceRecordSchema = createSelectSchema(maintenanceRecords);
+export const insertMaintenanceRecordSchema =
+  createInsertSchema(maintenanceRecords);
+export const selectMaintenanceRecordSchema =
+  createSelectSchema(maintenanceRecords);
 
 export const insertSparePartSchema = createInsertSchema(spareParts);
 export const selectSparePartSchema = createSelectSchema(spareParts);
 
-export const insertMaintenanceRecordPartSchema = createInsertSchema(maintenanceRecordParts);
-export const selectMaintenanceRecordPartSchema = createSelectSchema(maintenanceRecordParts);
+export const insertMaintenanceRecordPartSchema = createInsertSchema(
+  maintenanceRecordParts,
+);
+export const selectMaintenanceRecordPartSchema = createSelectSchema(
+  maintenanceRecordParts,
+);
 
 export const insertMaintenancePlanSchema = createInsertSchema(maintenancePlans);
 export const selectMaintenancePlanSchema = createSelectSchema(maintenancePlans);
 
 export const insertAuditLogSchema = createInsertSchema(auditLogs);
 export const selectAuditLogSchema = createSelectSchema(auditLogs);
-
