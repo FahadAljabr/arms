@@ -59,9 +59,7 @@ export const roles = createTable(
   (t) => ({
     id: t.integer().primaryKey().generatedByDefaultAsIdentity(),
     roleName: t.varchar({ length: 50 }).notNull(),
-    createdAt: t
-      .timestamp({ withTimezone: true })
-      .default(sql`CURRENT_TIMESTAMP`),
+    createdAt: t.timestamp({ withTimezone: true }).$defaultFn(() => new Date()),
   }),
   (tbl) => [uniqueIndex("roles_role_name_unique").on(tbl.roleName)],
 );
@@ -82,12 +80,10 @@ export const users = createTable(
       }),
     isActive: t.boolean().notNull().default(true),
     lastLoginAt: t.timestamp({ withTimezone: true }),
-    createdAt: t
-      .timestamp({ withTimezone: true })
-      .default(sql`CURRENT_TIMESTAMP`),
+    createdAt: t.timestamp({ withTimezone: true }).$defaultFn(() => new Date()),
     updatedAt: t
       .timestamp({ withTimezone: true })
-      .default(sql`CURRENT_TIMESTAMP`)
+      .$defaultFn(() => new Date())
       .$onUpdate(() => new Date()),
   }),
   (tbl) => [
@@ -101,12 +97,10 @@ export const sectors = createTable(
   (t) => ({
     id: t.integer().primaryKey().generatedByDefaultAsIdentity(),
     sectorName: t.varchar({ length: 100 }).notNull(),
-    createdAt: t
-      .timestamp({ withTimezone: true })
-      .default(sql`CURRENT_TIMESTAMP`),
+    createdAt: t.timestamp({ withTimezone: true }).$defaultFn(() => new Date()),
     updatedAt: t
       .timestamp({ withTimezone: true })
-      .default(sql`CURRENT_TIMESTAMP`)
+      .$defaultFn(() => new Date())
       .$onUpdate(() => new Date()),
   }),
   (tbl) => [uniqueIndex("sectors_sector_name_unique").on(tbl.sectorName)],
@@ -132,12 +126,10 @@ export const assets = createTable(
     commissionedAt: t.timestamp({ withTimezone: true }),
     decommissionedAt: t.timestamp({ withTimezone: true }),
     riskScore: doublePrecision(),
-    createdAt: t
-      .timestamp({ withTimezone: true })
-      .default(sql`CURRENT_TIMESTAMP`),
+    createdAt: t.timestamp({ withTimezone: true }).$defaultFn(() => new Date()),
     updatedAt: t
       .timestamp({ withTimezone: true })
-      .default(sql`CURRENT_TIMESTAMP`)
+      .$defaultFn(() => new Date())
       .$onUpdate(() => new Date()),
   }),
   (tbl) => [
@@ -166,12 +158,10 @@ export const maintenanceRecords = createTable(
         onDelete: "restrict",
         onUpdate: "cascade",
       }),
-    officerId: t
-      .varchar({ length: 64 })
-      .references(() => users.id, {
-        onDelete: "set null",
-        onUpdate: "cascade",
-      }),
+    officerId: t.varchar({ length: 64 }).references(() => users.id, {
+      onDelete: "set null",
+      onUpdate: "cascade",
+    }),
     issueDate: t.timestamp({ withTimezone: true }).notNull(),
     completionDate: t.timestamp({ withTimezone: true }),
     problemDescription: t.text().notNull(),
@@ -181,12 +171,10 @@ export const maintenanceRecords = createTable(
     downtimeHours: t.integer(),
     severity: severityEnum("severity"),
     category: t.varchar({ length: 50 }),
-    createdAt: t
-      .timestamp({ withTimezone: true })
-      .default(sql`CURRENT_TIMESTAMP`),
+    createdAt: t.timestamp({ withTimezone: true }).$defaultFn(() => new Date()),
     updatedAt: t
       .timestamp({ withTimezone: true })
-      .default(sql`CURRENT_TIMESTAMP`)
+      .$defaultFn(() => new Date())
       .$onUpdate(() => new Date()),
   }),
   (tbl) => [
@@ -205,12 +193,10 @@ export const spareParts = createTable(
     unitCost: numeric({ precision: 12, scale: 2 }),
     reorderThreshold: t.integer().default(0),
     quantityOnHand: t.integer().notNull().default(0),
-    createdAt: t
-      .timestamp({ withTimezone: true })
-      .default(sql`CURRENT_TIMESTAMP`),
+    createdAt: t.timestamp({ withTimezone: true }).$defaultFn(() => new Date()),
     updatedAt: t
       .timestamp({ withTimezone: true })
-      .default(sql`CURRENT_TIMESTAMP`)
+      .$defaultFn(() => new Date())
       .$onUpdate(() => new Date()),
   }),
   (tbl) => [
@@ -262,12 +248,10 @@ export const maintenancePlans = createTable(
     frequencyDays: t.integer(),
     nextDueDate: date(),
     lastMaintenanceKm: t.integer(),
-    createdAt: t
-      .timestamp({ withTimezone: true })
-      .default(sql`CURRENT_TIMESTAMP`),
+    createdAt: t.timestamp({ withTimezone: true }).$defaultFn(() => new Date()),
     updatedAt: t
       .timestamp({ withTimezone: true })
-      .default(sql`CURRENT_TIMESTAMP`)
+      .$defaultFn(() => new Date())
       .$onUpdate(() => new Date()),
   }),
   (tbl) => [uniqueIndex("maintenance_plans_asset_unique").on(tbl.assetId)],
@@ -287,9 +271,7 @@ export const auditLogs = createTable("audit_logs", (t) => ({
   userAgent: t.varchar({ length: 255 }),
   prevHash: t.varchar({ length: 128 }),
   rowHash: t.varchar({ length: 128 }),
-  createdAt: t
-    .timestamp({ withTimezone: true })
-    .default(sql`CURRENT_TIMESTAMP`),
+  createdAt: t.timestamp({ withTimezone: true }).$defaultFn(() => new Date()),
 }));
 
 // =====================
