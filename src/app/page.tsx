@@ -1,9 +1,9 @@
 import Link from "next/link";
-import { 
-  withAuth , 
-  getSignInUrl, 
-  getSignUpUrl, 
-  signOut 
+import {
+  withAuth,
+  getSignInUrl,
+  getSignUpUrl,
+  signOut,
 } from "@workos-inc/authkit-nextjs";
 
 import { LatestPost } from "~/app/_components/post";
@@ -15,8 +15,6 @@ export default async function Home() {
   const signInUrl = await getSignInUrl();
   const signUpUrl = await getSignUpUrl();
 
-  void api.post.getLatest.prefetch();
-
   return (
     <HydrateClient>
       <main className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-[#2e026d] to-[#15162c] text-white">
@@ -25,12 +23,16 @@ export default async function Home() {
           <div className="flex flex-col items-center gap-4">
             {user ? (
               <div className="flex flex-col items-center gap-2">
-                <p className="text-xl">Welcome, {user.firstName ?? user.email}!</p>
-                <form action={async () => {
-                  'use server';
-                  await signOut();
-                }}>
-                  <button 
+                <p className="text-xl">
+                  Welcome, {user.firstName ?? user.email}!
+                </p>
+                <form
+                  action={async () => {
+                    "use server";
+                    await signOut();
+                  }}
+                >
+                  <button
                     type="submit"
                     className="rounded bg-red-600 px-4 py-2 text-white hover:bg-red-700"
                   >
@@ -40,13 +42,13 @@ export default async function Home() {
               </div>
             ) : (
               <div className="flex gap-4">
-                <Link 
+                <Link
                   href={signInUrl}
                   className="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
                 >
                   Sign In
                 </Link>
-                <Link 
+                <Link
                   href={signUpUrl}
                   className="rounded bg-green-600 px-4 py-2 text-white hover:bg-green-700"
                 >
@@ -88,8 +90,6 @@ export default async function Home() {
               {hello ? hello.greeting : "Loading tRPC query..."}
             </p>
           </div>
-
-          <LatestPost />
         </div>
       </main>
     </HydrateClient>
