@@ -346,7 +346,7 @@ export default function MaintenancePage() {
             {/* Today's Schedule */}
             <Card>
               <CardHeader>
-                <CardTitle>Today's Schedule</CardTitle>
+                <CardTitle>Today&apos;s Schedule</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">

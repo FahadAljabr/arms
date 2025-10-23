@@ -25,7 +25,7 @@ export default async function Home() {
           <div className="flex flex-col items-center gap-4">
             {user ? (
               <div className="flex flex-col items-center gap-2">
-                <p className="text-xl">Welcome, {user.firstName || user.email}!</p>
+                <p className="text-xl">Welcome, {user.firstName ?? user.email}!</p>
                 <form action={async () => {
                   'use server';
                   await signOut();
