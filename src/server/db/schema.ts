@@ -68,7 +68,7 @@ export const users = createTable(
   "users",
   (t) => ({
     // WorkOS user id (e.g., "user_01H...")
-    id: t.varchar({ length: 100 }).primaryKey(),
+    id: t.text().primaryKey(),
     fullName: t.varchar({ length: 255 }).notNull(),
     email: t.varchar({ length: 255 }).notNull(),
     roleId: t
