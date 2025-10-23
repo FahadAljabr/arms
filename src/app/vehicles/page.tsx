@@ -1,4 +1,6 @@
 import React from "react";
+import { withAuth } from "@workos-inc/authkit-nextjs";
+import { db } from "~/server/db";
 import { AssetsTable } from "../_components/assets-table";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import {
@@ -23,7 +25,18 @@ import {
 } from "~/components/ui/select";
 import { Search, Car, Plus, Filter, Edit, Eye, Wrench } from "lucide-react";
 
-export default function VehiclesPage() {
+export default async function VehiclesPage() {
+  // Determine if the current user is a Technician (server-side)
+  const { user } = await withAuth({ ensureSignedIn: true });
+  let isTechnician = false;
+  if (user) {
+    const current = await db.query.users.findFirst({
+      where: (u, { eq }) => eq(u.id, user.id),
+      with: { role: true },
+    });
+    isTechnician =
+      (current?.role?.roleName ?? "").toLowerCase() === "technician";
+  }
   const vehicles = [
     {
       id: "POL-001",
@@ -98,112 +111,118 @@ export default function VehiclesPage() {
           </p>
         </div>
 
-        {/* Vehicle Registration Form */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Plus className="h-5 w-5" />
-              Register New Vehicle
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form className="space-y-6">
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        {/* Vehicle Registration Form (Technicians only) */}
+        {isTechnician ? (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Plus className="h-5 w-5" />
+                Register New Vehicle
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form className="space-y-6">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="vehicle-id">
+                      Vehicle ID/Plate Number *
+                    </Label>
+                    <Input
+                      id="vehicle-id"
+                      placeholder="e.g., POL-001, TR-045, APC-012"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="sector">Sector *</Label>
+                    <Select>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select Sector" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="police">Police</SelectItem>
+                        <SelectItem value="traffic">Traffic Police</SelectItem>
+                        <SelectItem value="military">
+                          Military Police
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="vehicle-type">Vehicle Type *</Label>
+                    <Select>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select Type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="patrol-car">Patrol Car</SelectItem>
+                        <SelectItem value="motorcycle">Motorcycle</SelectItem>
+                        <SelectItem value="armored-vehicle">
+                          Armored Vehicle
+                        </SelectItem>
+                        <SelectItem value="transport-truck">
+                          Transport Truck
+                        </SelectItem>
+                        <SelectItem value="emergency-vehicle">
+                          Emergency Vehicle
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="manufacturer">Manufacturer</Label>
+                    <Input id="manufacturer" placeholder="e.g., Toyota, Ford" />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="model">Model</Label>
+                    <Input id="model" placeholder="e.g., Camry, F-150" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="year">Year</Label>
+                    <Input
+                      id="year"
+                      type="number"
+                      placeholder="2024"
+                      min="1990"
+                      max="2025"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="vin">VIN Number</Label>
+                    <Input id="vin" placeholder="17-digit VIN" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="purchase-date">Purchase Date</Label>
+                    <Input id="purchase-date" type="date" />
+                  </div>
+                </div>
+
                 <div className="space-y-2">
-                  <Label htmlFor="vehicle-id">Vehicle ID/Plate Number *</Label>
-                  <Input
-                    id="vehicle-id"
-                    placeholder="e.g., POL-001, TR-045, APC-012"
+                  <Label htmlFor="notes">Additional Notes</Label>
+                  <Textarea
+                    id="notes"
+                    placeholder="Special equipment, modifications, etc."
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="sector">Sector *</Label>
-                  <Select>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Sector" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="police">Police</SelectItem>
-                      <SelectItem value="traffic">Traffic Police</SelectItem>
-                      <SelectItem value="military">Military Police</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
 
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="vehicle-type">Vehicle Type *</Label>
-                  <Select>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="patrol-car">Patrol Car</SelectItem>
-                      <SelectItem value="motorcycle">Motorcycle</SelectItem>
-                      <SelectItem value="armored-vehicle">
-                        Armored Vehicle
-                      </SelectItem>
-                      <SelectItem value="transport-truck">
-                        Transport Truck
-                      </SelectItem>
-                      <SelectItem value="emergency-vehicle">
-                        Emergency Vehicle
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div className="flex gap-2">
+                  <Button type="submit">Register Vehicle</Button>
+                  <Button type="reset" variant="outline">
+                    Clear Form
+                  </Button>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="manufacturer">Manufacturer</Label>
-                  <Input id="manufacturer" placeholder="e.g., Toyota, Ford" />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="model">Model</Label>
-                  <Input id="model" placeholder="e.g., Camry, F-150" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="year">Year</Label>
-                  <Input
-                    id="year"
-                    type="number"
-                    placeholder="2024"
-                    min="1990"
-                    max="2025"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="vin">VIN Number</Label>
-                  <Input id="vin" placeholder="17-digit VIN" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="purchase-date">Purchase Date</Label>
-                  <Input id="purchase-date" type="date" />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="notes">Additional Notes</Label>
-                <Textarea
-                  id="notes"
-                  placeholder="Special equipment, modifications, etc."
-                />
-              </div>
-
-              <div className="flex gap-2">
-                <Button type="submit">Register Vehicle</Button>
-                <Button type="reset" variant="outline">
-                  Clear Form
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
+              </form>
+            </CardContent>
+          </Card>
+        ) : null}
 
         {/* Search and Filter */}
         <Card>
@@ -291,10 +310,12 @@ export default function VehiclesPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  <Button variant="outline" className="w-full justify-start">
-                    <Plus className="mr-2 h-4 w-4" />
-                    Register New Vehicle
-                  </Button>
+                  {isTechnician ? (
+                    <Button variant="outline" className="w-full justify-start">
+                      <Plus className="mr-2 h-4 w-4" />
+                      Register New Vehicle
+                    </Button>
+                  ) : null}
                   <Button variant="outline" className="w-full justify-start">
                     <Wrench className="mr-2 h-4 w-4" />
                     Bulk Schedule Maintenance

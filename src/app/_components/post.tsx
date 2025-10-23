@@ -8,33 +8,34 @@ export function LatestPost() {
   const [latestPost] = api.post.getLatest.useSuspenseQuery();
 
   const utils = api.useUtils();
-  const [name, setName] = useState("");
+  const [roleName, setRoleName] = useState("");
   const createPost = api.post.create.useMutation({
     onSuccess: async () => {
       await utils.post.invalidate();
-      setName("");
+      setRoleName("");
     },
   });
 
   return (
     <div className="w-full max-w-xs">
       {latestPost ? (
-        <p className="truncate">Your most recent post: {latestPost.name}</p>
+        <p className="truncate">Your most recent role: {latestPost.roleName}</p>
       ) : (
-        <p>You have no posts yet.</p>
+        <p>No roles created yet.</p>
       )}
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          createPost.mutate({ name });
+          if (!roleName.trim()) return;
+          createPost.mutate({ roleName });
         }}
         className="flex flex-col gap-2"
       >
         <input
           type="text"
-          placeholder="Title"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
+          placeholder="Role name"
+          value={roleName}
+          onChange={(e) => setRoleName(e.target.value)}
           className="w-full rounded-full bg-white/10 px-4 py-2 text-white"
         />
         <button

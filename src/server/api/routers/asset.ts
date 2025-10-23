@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
+import { assets, users } from "~/server/db/schema";
 
 export const assetRouter = createTRPCRouter({
   // Get a single asset by its numeric ID
@@ -31,4 +32,49 @@ export const assetRouter = createTRPCRouter({
     });
     return rows;
   }),
+
+  // Create a new asset (Technicians only)
+  create: protectedProcedure
+    .input(
+      z.object({
+        assetUid: z.string().min(1),
+        assetType: z.enum(["Patrol Car", "Armored Vehicle", "Rifle", "Other"]),
+        model: z.string().min(1).optional(),
+        sectorId: z.number().int().positive(),
+        currentKm: z.number().int().nonnegative().optional(),
+        lastServiceAt: z.date().optional(),
+        commissionedAt: z.date().optional(),
+        decommissionedAt: z.date().optional(),
+        riskScore: z.number().optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      // Authorize: only technicians can create assets
+      const currentUser = await ctx.db.query.users.findFirst({
+        where: (u, { eq }) => eq(u.id, ctx.user!.id),
+        with: { role: true },
+      });
+
+      const roleName = currentUser?.role?.roleName?.toLowerCase();
+      if (roleName !== "technician") {
+        throw new Error("Forbidden: only technicians can create assets");
+      }
+
+      const [created] = await ctx.db
+        .insert(assets)
+        .values({
+          assetUid: input.assetUid,
+          assetType: input.assetType,
+          model: input.model,
+          sectorId: input.sectorId,
+          currentKm: input.currentKm,
+          lastServiceAt: input.lastServiceAt,
+          commissionedAt: input.commissionedAt,
+          decommissionedAt: input.decommissionedAt,
+          riskScore: input.riskScore,
+        })
+        .returning();
+
+      return created;
+    }),
 });
