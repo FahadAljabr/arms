@@ -1,4 +1,5 @@
 import React from "react";
+import { AssetsTable } from "../_components/assets-table";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import {
   Table,
@@ -270,63 +271,15 @@ export default function VehiclesPage() {
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           {/* Vehicle List */}
           <div className="lg:col-span-2">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Car className="h-5 w-5" />
-                  Registered Vehicles (247 total)
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {vehicles.map((vehicle) => (
-                  <div
-                    key={vehicle.id}
-                    className={`flex items-center justify-between rounded-lg border p-4 ${vehicle.sectorClass}`}
-                  >
-                    <div className="flex-1">
-                      <h4 className="text-lg font-semibold">
-                        {vehicle.id} - {vehicle.title}
-                      </h4>
-                      <div className="text-muted-foreground mt-2 grid grid-cols-1 gap-2 text-sm md:grid-cols-2">
-                        <p>
-                          <span className="font-medium">Sector:</span>{" "}
-                          {vehicle.sector}
-                        </p>
-                        <p>
-                          <span className="font-medium">Type:</span>{" "}
-                          {vehicle.type}
-                        </p>
-                        <p>
-                          <span className="font-medium">Last Service:</span>{" "}
-                          {vehicle.lastService}
-                        </p>
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">Status:</span>
-                          <Badge variant={getStatusVariant(vehicle.status)}>
-                            {vehicle.status}
-                          </Badge>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="ml-4 flex gap-2">
-                      <Button size="sm" variant="outline">
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button size="sm" variant="outline">
-                        <Wrench className="h-4 w-4" />
-                      </Button>
-                      <Button size="sm" variant="outline">
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-
-                <div className="pt-4 text-center">
-                  <Button variant="outline">Load More Vehicles</Button>
-                </div>
-              </CardContent>
-            </Card>
+            <AssetsTable
+              title={
+                <span className="flex items-center gap-2">
+                  <Car className="h-5 w-5" /> Registered Vehicles
+                </span>
+              }
+              pageSize={10}
+              assetTypes={["Patrol Car", "Armored Vehicle"]}
+            />
           </div>
 
           {/* Sidebar */}

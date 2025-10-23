@@ -1,4 +1,5 @@
 import React from "react";
+import { AssetsTable } from "../_components/assets-table";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import {
   Table,
@@ -351,77 +352,17 @@ export default function WeaponsPage() {
         </Card>
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          {/* Weapon Inventory Grid */}
+          {/* Weapon Inventory (Assets of type Rifle) */}
           <div className="lg:col-span-2">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Shield className="h-5 w-5" />
-                  Weapon Inventory (1,245 total)
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-                  {weapons.map((weapon) => (
-                    <div
-                      key={weapon.id}
-                      className={`rounded-lg border-2 border-gray-800 p-4 ${weapon.securityClass}`}
-                    >
-                      <div className="mb-3 border-b border-gray-300 pb-2 text-sm font-bold">
-                        {weapon.id} - {weapon.title}
-                      </div>
-                      <div className="mb-4 space-y-2 text-sm">
-                        <p>
-                          <span className="font-medium">Type:</span>{" "}
-                          {weapon.type}
-                        </p>
-                        <p>
-                          <span className="font-medium">Sector:</span>{" "}
-                          {weapon.sector}
-                        </p>
-                        <p>
-                          <span className="font-medium">Assigned:</span>{" "}
-                          {weapon.assignedTo}
-                        </p>
-                        <p>
-                          <span className="font-medium">Last Inspection:</span>{" "}
-                          {weapon.lastInspection}
-                        </p>
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">Status:</span>
-                          <Badge variant={getStatusVariant(weapon.status)}>
-                            {weapon.status}
-                          </Badge>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">Security:</span>
-                          <span
-                            className={`px-2 py-1 text-xs font-bold ${getSecurityBadge(weapon.securityLevel)}`}
-                          >
-                            {weapon.securityLevel}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button size="sm" variant="outline">
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button size="sm" variant="outline">
-                          <Wrench className="h-4 w-4" />
-                        </Button>
-                        <Button size="sm" variant="outline">
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="pt-4 text-center">
-                  <Button variant="outline">Load More Weapons</Button>
-                </div>
-              </CardContent>
-            </Card>
+            <AssetsTable
+              title={
+                <span className="flex items-center gap-2">
+                  <Shield className="h-5 w-5" /> Registered Weapons
+                </span>
+              }
+              pageSize={10}
+              assetTypes={["Rifle"]}
+            />
           </div>
 
           {/* Sidebar */}
