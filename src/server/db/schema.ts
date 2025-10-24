@@ -54,44 +54,6 @@ export const severityEnum = pgEnum("severity", ["Low", "Medium", "High"]);
 // Tables
 // =====================
 
-export const roles = createTable(
-  "roles",
-  (t) => ({
-    id: t.integer().primaryKey().generatedByDefaultAsIdentity(),
-    roleName: t.varchar({ length: 50 }).notNull(),
-    createdAt: t.timestamp({ withTimezone: true }).$defaultFn(() => new Date()),
-  }),
-  (tbl) => [uniqueIndex("roles_role_name_unique").on(tbl.roleName)],
-);
-
-export const users = createTable(
-  "users",
-  (t) => ({
-    // WorkOS user id (e.g., "user_01H...")
-    id: t.text().primaryKey(),
-    fullName: t.varchar({ length: 255 }).notNull(),
-    email: t.varchar({ length: 255 }).notNull(),
-    roleId: t
-      .integer()
-      .notNull()
-      .references(() => roles.id, {
-        onDelete: "restrict",
-        onUpdate: "cascade",
-      }),
-    isActive: t.boolean().notNull().default(true),
-    lastLoginAt: t.timestamp({ withTimezone: true }),
-    createdAt: t.timestamp({ withTimezone: true }).$defaultFn(() => new Date()),
-    updatedAt: t
-      .timestamp({ withTimezone: true })
-      .$defaultFn(() => new Date())
-      .$onUpdate(() => new Date()),
-  }),
-  (tbl) => [
-    uniqueIndex("users_email_unique").on(tbl.email),
-    index("users_role_id_idx").on(tbl.roleId),
-  ],
-);
-
 export const sectors = createTable(
   "sectors",
   (t) => ({
@@ -150,18 +112,7 @@ export const maintenanceRecords = createTable(
         onDelete: "restrict",
         onUpdate: "cascade",
       }),
-    // Note: Users.id is varchar(100), here spec asks for varchar(64). It's okay as values will fit.
-    technicianId: t
-      .varchar({ length: 64 })
-      .notNull()
-      .references(() => users.id, {
-        onDelete: "restrict",
-        onUpdate: "cascade",
-      }),
-    officerId: t.varchar({ length: 64 }).references(() => users.id, {
-      onDelete: "set null",
-      onUpdate: "cascade",
-    }),
+    technicianId: t.varchar({ length: 100 }).notNull(),
     issueDate: t.timestamp({ withTimezone: true }).notNull(),
     completionDate: t.timestamp({ withTimezone: true }),
     problemDescription: t.text().notNull(),
@@ -259,10 +210,7 @@ export const maintenancePlans = createTable(
 
 export const auditLogs = createTable("audit_logs", (t) => ({
   id: t.integer().primaryKey().generatedByDefaultAsIdentity(),
-  userId: t.varchar({ length: 64 }).references(() => users.id, {
-    onDelete: "set null",
-    onUpdate: "cascade",
-  }),
+  userId: t.varchar({ length: 100 }),
   actionType: t.varchar({ length: 50 }).notNull(),
   tableName: t.varchar({ length: 50 }),
   recordId: t.integer(),
@@ -277,20 +225,6 @@ export const auditLogs = createTable("audit_logs", (t) => ({
 // =====================
 // Relations
 // =====================
-
-export const usersRelations = relations(users, ({ one, many }) => ({
-  role: one(roles, {
-    fields: [users.roleId],
-    references: [roles.id],
-  }),
-  technicianRecords: many(maintenanceRecords, { relationName: "technician" }),
-  officerRecords: many(maintenanceRecords, { relationName: "officer" }),
-  auditLogs: many(auditLogs),
-}));
-
-export const rolesRelations = relations(roles, ({ many }) => ({
-  users: many(users),
-}));
 
 export const sectorsRelations = relations(sectors, ({ many }) => ({
   assets: many(assets),
@@ -314,16 +248,6 @@ export const maintenanceRecordsRelations = relations(
     asset: one(assets, {
       fields: [maintenanceRecords.assetId],
       references: [assets.id],
-    }),
-    technician: one(users, {
-      fields: [maintenanceRecords.technicianId],
-      references: [users.id],
-      relationName: "technician",
-    }),
-    officer: one(users, {
-      fields: [maintenanceRecords.officerId],
-      references: [users.id],
-      relationName: "officer",
     }),
     parts: many(maintenanceRecordParts),
   }),
@@ -357,22 +281,9 @@ export const maintenancePlansRelations = relations(
   }),
 );
 
-export const auditLogsRelations = relations(auditLogs, ({ one }) => ({
-  user: one(users, {
-    fields: [auditLogs.userId],
-    references: [users.id],
-  }),
-}));
-
 // =====================
 // Zod Schemas (Insert/Select)
 // =====================
-
-export const insertRoleSchema = createInsertSchema(roles);
-export const selectRoleSchema = createSelectSchema(roles);
-
-export const insertUserSchema = createInsertSchema(users);
-export const selectUserSchema = createSelectSchema(users);
 
 export const insertSectorSchema = createInsertSchema(sectors);
 export const selectSectorSchema = createSelectSchema(sectors);

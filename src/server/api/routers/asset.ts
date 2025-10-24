@@ -1,7 +1,8 @@
 import { z } from "zod";
 
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
-import { assets, users } from "~/server/db/schema";
+import { assets } from "~/server/db/schema";
+import { hasRole } from "~/server/auth/roles";
 
 export const assetRouter = createTRPCRouter({
   // Get a single asset by its numeric ID
@@ -49,14 +50,7 @@ export const assetRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      // Authorize: only technicians can create assets
-      const currentUser = await ctx.db.query.users.findFirst({
-        where: (u, { eq }) => eq(u.id, ctx.user!.id),
-        with: { role: true },
-      });
-
-      const roleName = currentUser?.role?.roleName?.toLowerCase();
-      if (roleName !== "technician") {
+      if (!ctx.user || !hasRole(ctx.user, "technician")) {
         throw new Error("Forbidden: only technicians can create assets");
       }
 
