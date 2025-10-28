@@ -1,8 +1,8 @@
 import { z } from "zod";
-
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
-import { assets } from "~/server/db/schema";
+import { assets, insertAssetSchema } from "~/server/db/schema";
 import { hasRole } from "~/server/auth/roles";
+import { eq } from "drizzle-orm";
 
 export const assetRouter = createTRPCRouter({
   // Get a single asset by its numeric ID
@@ -17,10 +17,11 @@ export const assetRouter = createTRPCRouter({
 
   // Get all assets that belong to a specific sector
   getBySector: protectedProcedure
-    .input(z.object({ sectorId: z.number().int().positive() }))
+    // use draft zod schema for input validation
+    .input(z.object({ sector: z.string().min(2).max(100) }))
     .query(async ({ ctx, input }) => {
       const rows = await ctx.db.query.assets.findMany({
-        where: (assets, { eq }) => eq(assets.sectorId, input.sectorId),
+        where: (assets, { eq }) => eq(assets.sector, input.sector),
         orderBy: (assets, { asc }) => [asc(assets.id)],
       });
       return rows;
@@ -37,16 +38,10 @@ export const assetRouter = createTRPCRouter({
   // Create a new asset (Technicians only)
   create: protectedProcedure
     .input(
-      z.object({
-        assetUid: z.string().min(1),
-        assetType: z.enum(["Patrol Car", "Armored Vehicle", "Rifle", "Other"]),
-        model: z.string().min(1).optional(),
-        sectorId: z.number().int().positive(),
-        currentKm: z.number().int().nonnegative().optional(),
-        lastServiceAt: z.date().optional(),
-        commissionedAt: z.date().optional(),
-        decommissionedAt: z.date().optional(),
-        riskScore: z.number().optional(),
+      insertAssetSchema.omit({
+        id: true,
+        createdAt: true,
+        updatedAt: true,
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -54,21 +49,40 @@ export const assetRouter = createTRPCRouter({
         throw new Error("Forbidden: only technicians can create assets");
       }
 
-      const [created] = await ctx.db
-        .insert(assets)
-        .values({
-          assetUid: input.assetUid,
-          assetType: input.assetType,
-          model: input.model,
-          sectorId: input.sectorId,
-          currentKm: input.currentKm,
-          lastServiceAt: input.lastServiceAt,
-          commissionedAt: input.commissionedAt,
-          decommissionedAt: input.decommissionedAt,
-          riskScore: input.riskScore,
-        })
+      const [created] = await ctx.db.insert(assets).values(input).returning();
+      return created;
+    }),
+  update: protectedProcedure
+    .input(
+      // Use the insert schema but make all fields optional except for id which is required
+      insertAssetSchema.partial().extend({ id: z.number().int().positive() }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      if (!ctx.user || !hasRole(ctx.user, "technician")) {
+        throw new Error("Forbidden: only technicians can update assets");
+      }
+
+      const [updated] = await ctx.db
+        .update(assets)
+        .set(input)
+        .where(eq(assets.id, input.id))
         .returning();
 
-      return created;
+      return updated;
+    }),
+  // Delete an asset by its ID (Technicians only)
+  delete: protectedProcedure
+    .input(z.object({ id: z.number().int().positive() }))
+    .mutation(async ({ ctx, input }) => {
+      if (!ctx.user || !hasRole(ctx.user, "technician")) {
+        throw new Error("Forbidden: only technicians can delete assets");
+      }
+
+      const [deleted] = await ctx.db
+        .delete(assets)
+        .where(eq(assets.id, input.id))
+        .returning();
+
+      return deleted;
     }),
 });

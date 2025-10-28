@@ -54,35 +54,14 @@ export const severityEnum = pgEnum("severity", ["Low", "Medium", "High"]);
 // Tables
 // =====================
 
-export const sectors = createTable(
-  "sectors",
-  (t) => ({
-    id: t.integer().primaryKey().generatedByDefaultAsIdentity(),
-    sectorName: t.varchar({ length: 100 }).notNull(),
-    createdAt: t.timestamp({ withTimezone: true }).$defaultFn(() => new Date()),
-    updatedAt: t
-      .timestamp({ withTimezone: true })
-      .$defaultFn(() => new Date())
-      .$onUpdate(() => new Date()),
-  }),
-  (tbl) => [uniqueIndex("sectors_sector_name_unique").on(tbl.sectorName)],
-);
-
 export const assets = createTable(
   "assets",
   (t) => ({
     id: t.integer().primaryKey().generatedByDefaultAsIdentity(),
-    assetUid: t.varchar({ length: 100 }).notNull(),
     assetType: assetTypeEnum("asset_type").notNull(),
     model: t.varchar({ length: 100 }),
     status: assetStatusEnum("status").notNull().default("Operational"),
-    sectorId: t
-      .integer()
-      .notNull()
-      .references(() => sectors.id, {
-        onDelete: "restrict",
-        onUpdate: "cascade",
-      }),
+    sector: t.text().notNull(),
     currentKm: t.integer(),
     lastServiceAt: t.timestamp({ withTimezone: true }),
     commissionedAt: t.timestamp({ withTimezone: true }),
@@ -93,10 +72,13 @@ export const assets = createTable(
       .timestamp({ withTimezone: true })
       .$defaultFn(() => new Date())
       .$onUpdate(() => new Date()),
+    createdBy: t.varchar({ length: 100 }).notNull(),
+    updatedBy: t.varchar({ length: 100 }).notNull(),
+    deletedAt: t.timestamp({ withTimezone: true }),
+    deletedBy: t.varchar({ length: 100 }),
   }),
   (tbl) => [
-    uniqueIndex("assets_asset_uid_unique").on(tbl.assetUid),
-    index("assets_sector_id_idx").on(tbl.sectorId),
+    index("assets_sector_idx").on(tbl.sector),
     index("assets_status_idx").on(tbl.status),
   ],
 );
@@ -127,6 +109,10 @@ export const maintenanceRecords = createTable(
       .timestamp({ withTimezone: true })
       .$defaultFn(() => new Date())
       .$onUpdate(() => new Date()),
+    createdBy: t.varchar({ length: 100 }).notNull(),
+    updatedBy: t.varchar({ length: 100 }).notNull(),
+    deletedAt: t.timestamp({ withTimezone: true }),
+    deletedBy: t.varchar({ length: 100 }),
   }),
   (tbl) => [
     index("maintenance_records_asset_issue_idx").on(tbl.assetId, tbl.issueDate),
@@ -149,6 +135,10 @@ export const spareParts = createTable(
       .timestamp({ withTimezone: true })
       .$defaultFn(() => new Date())
       .$onUpdate(() => new Date()),
+    createdBy: t.varchar({ length: 100 }).notNull(),
+    updatedBy: t.varchar({ length: 100 }).notNull(),
+    deletedAt: t.timestamp({ withTimezone: true }),
+    deletedBy: t.varchar({ length: 100 }),
   }),
   (tbl) => [
     uniqueIndex("spare_parts_part_number_unique").on(tbl.partNumber),
@@ -174,6 +164,15 @@ export const maintenanceRecordParts = createTable(
         onUpdate: "cascade",
       }),
     quantityUsed: t.integer().notNull(),
+    createdAt: t.timestamp({ withTimezone: true }).$defaultFn(() => new Date()),
+    updatedAt: t
+      .timestamp({ withTimezone: true })
+      .$defaultFn(() => new Date())
+      .$onUpdate(() => new Date()),
+    createdBy: t.varchar({ length: 100 }).notNull(),
+    updatedBy: t.varchar({ length: 100 }).notNull(),
+    deletedAt: t.timestamp({ withTimezone: true }),
+    deletedBy: t.varchar({ length: 100 }),
   }),
   (tbl) => [
     primaryKey({
@@ -204,37 +203,19 @@ export const maintenancePlans = createTable(
       .timestamp({ withTimezone: true })
       .$defaultFn(() => new Date())
       .$onUpdate(() => new Date()),
+    createdBy: t.varchar({ length: 100 }).notNull(),
+    updatedBy: t.varchar({ length: 100 }).notNull(),
+    deletedAt: t.timestamp({ withTimezone: true }),
+    deletedBy: t.varchar({ length: 100 }),
   }),
   (tbl) => [uniqueIndex("maintenance_plans_asset_unique").on(tbl.assetId)],
 );
-
-export const auditLogs = createTable("audit_logs", (t) => ({
-  id: t.integer().primaryKey().generatedByDefaultAsIdentity(),
-  userId: t.varchar({ length: 100 }),
-  actionType: t.varchar({ length: 50 }).notNull(),
-  tableName: t.varchar({ length: 50 }),
-  recordId: t.integer(),
-  details: t.text(), // JSON string
-  ipAddress: t.varchar({ length: 64 }),
-  userAgent: t.varchar({ length: 255 }),
-  prevHash: t.varchar({ length: 128 }),
-  rowHash: t.varchar({ length: 128 }),
-  createdAt: t.timestamp({ withTimezone: true }).$defaultFn(() => new Date()),
-}));
 
 // =====================
 // Relations
 // =====================
 
-export const sectorsRelations = relations(sectors, ({ many }) => ({
-  assets: many(assets),
-}));
-
 export const assetsRelations = relations(assets, ({ one, many }) => ({
-  sector: one(sectors, {
-    fields: [assets.sectorId],
-    references: [sectors.id],
-  }),
   maintenanceRecords: many(maintenanceRecords),
   maintenancePlan: one(maintenancePlans, {
     fields: [assets.id],
@@ -285,9 +266,6 @@ export const maintenancePlansRelations = relations(
 // Zod Schemas (Insert/Select)
 // =====================
 
-export const insertSectorSchema = createInsertSchema(sectors);
-export const selectSectorSchema = createSelectSchema(sectors);
-
 export const insertAssetSchema = createInsertSchema(assets);
 export const selectAssetSchema = createSelectSchema(assets);
 
@@ -308,6 +286,3 @@ export const selectMaintenanceRecordPartSchema = createSelectSchema(
 
 export const insertMaintenancePlanSchema = createInsertSchema(maintenancePlans);
 export const selectMaintenancePlanSchema = createSelectSchema(maintenancePlans);
-
-export const insertAuditLogSchema = createInsertSchema(auditLogs);
-export const selectAuditLogSchema = createSelectSchema(auditLogs);
