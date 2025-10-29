@@ -41,29 +41,47 @@ export const assetRouter = createTRPCRouter({
         id: true,
         createdAt: true,
         updatedAt: true,
+        createdBy: true,
+        updatedBy: true,
+        deletedAt: true,
+        deletedBy: true,
       }),
     )
     .mutation(async ({ ctx, input }) => {
       if (!ctx.user || !ctx.roles?.includes("technician")) {
         throw new Error("Forbidden: only technicians can create assets");
       }
+      const actor = ctx.user.id;
 
-      const [created] = await ctx.db.insert(assets).values(input).returning();
+      const [created] = await ctx.db
+        .insert(assets)
+        .values({ ...input, createdBy: actor, updatedBy: actor })
+        .returning();
       return created;
     }),
   update: protectedProcedure
     .input(
       // Use the insert schema but make all fields optional except for id which is required
-      insertAssetSchema.partial().extend({ id: z.number().int().positive() }),
+      insertAssetSchema
+        .partial()
+        .extend({ id: z.number().int().positive() })
+        .omit({
+          createdAt: true,
+          updatedAt: true,
+          createdBy: true,
+          updatedBy: true,
+          deletedAt: true,
+          deletedBy: true,
+        }),
     )
     .mutation(async ({ ctx, input }) => {
       if (!ctx.user || !ctx.roles?.includes("technician")) {
         throw new Error("Forbidden: only technicians can update assets");
       }
-
+      const actor = ctx.user.id;
       const [updated] = await ctx.db
         .update(assets)
-        .set(input)
+        .set({ ...input, updatedBy: actor })
         .where(eq(assets.id, input.id))
         .returning();
 

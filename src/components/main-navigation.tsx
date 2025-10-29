@@ -38,93 +38,36 @@ export function MainNavigation() {
               </NavigationMenuItem>
 
               <NavigationMenuItem>
-                <NavigationMenuTrigger>
-                  Vehicle Management
-                </NavigationMenuTrigger>
-                <NavigationMenuContent>
-                  <ul className="grid gap-3 p-4 md:w-[400px] lg:w-[500px] lg:grid-cols-[.75fr_1fr]">
-                    <li className="row-span-3">
-                      <NavigationMenuLink asChild>
-                        <Link
-                          className="from-muted/50 to-muted flex h-full w-full flex-col justify-end rounded-md bg-gradient-to-b p-6 no-underline outline-none select-none focus:shadow-md"
-                          href="/vehicles"
-                        >
-                          <div className="mt-4 mb-2 text-lg font-medium">
-                            Vehicle Registry
-                          </div>
-                          <p className="text-muted-foreground text-sm leading-tight">
-                            Manage your fleet of vehicles, track registrations,
-                            and monitor vehicle status.
-                          </p>
-                        </Link>
-                      </NavigationMenuLink>
-                    </li>
-                    <ListItem
-                      href="/vehicles/register"
-                      title="Register Vehicle"
-                    >
-                      Add new vehicles to the fleet registry.
-                    </ListItem>
-                    <ListItem href="/vehicles/search" title="Search Vehicles">
-                      Find and filter vehicles by various criteria.
-                    </ListItem>
-                    <ListItem href="/vehicles/reports" title="Vehicle Reports">
-                      Generate comprehensive vehicle reports.
-                    </ListItem>
-                  </ul>
-                </NavigationMenuContent>
+                <NavigationMenuLink asChild>
+                  <Link
+                    href="/vehicles"
+                    className="group bg-background hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground data-[active]:bg-accent/50 data-[state=open]:bg-accent/50 inline-flex h-9 w-max items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors focus:outline-none disabled:pointer-events-none disabled:opacity-50"
+                  >
+                    Vehicle Management
+                  </Link>
+                </NavigationMenuLink>
               </NavigationMenuItem>
 
               <NavigationMenuItem>
-                <NavigationMenuTrigger>Maintenance</NavigationMenuTrigger>
-                <NavigationMenuContent>
-                  <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
-                    <ListItem href="/maintenance" title="Maintenance Tracking">
-                      Track ongoing and completed maintenance activities.
-                    </ListItem>
-                    <ListItem
-                      href="/maintenance/schedule"
-                      title="Schedule Maintenance"
-                    >
-                      Plan and schedule upcoming maintenance tasks.
-                    </ListItem>
-                    <ListItem
-                      href="/maintenance/history"
-                      title="Maintenance History"
-                    >
-                      View historical maintenance records and patterns.
-                    </ListItem>
-                    <ListItem
-                      href="/maintenance/alerts"
-                      title="Maintenance Alerts"
-                    >
-                      Manage maintenance alerts and notifications.
-                    </ListItem>
-                  </ul>
-                </NavigationMenuContent>
+                <NavigationMenuLink asChild>
+                  <Link
+                    href="/maintenance"
+                    className="group bg-background hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground data-[active]:bg-accent/50 data-[state=open]:bg-accent/50 inline-flex h-9 w-max items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors focus:outline-none disabled:pointer-events-none disabled:opacity-50"
+                  >
+                    Maintenance
+                  </Link>
+                </NavigationMenuLink>
               </NavigationMenuItem>
 
               <NavigationMenuItem>
-                <NavigationMenuTrigger>Weapons</NavigationMenuTrigger>
-                <NavigationMenuContent>
-                  <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
-                    <ListItem href="/weapons" title="Weapon Inventory">
-                      Manage weapon inventory and tracking.
-                    </ListItem>
-                    <ListItem href="/weapons/register" title="Register Weapon">
-                      Add new weapons to the inventory system.
-                    </ListItem>
-                    <ListItem
-                      href="/weapons/inspection"
-                      title="Weapon Inspections"
-                    >
-                      Schedule and track weapon inspections.
-                    </ListItem>
-                    <ListItem href="/weapons/reports" title="Weapon Reports">
-                      Generate weapon inventory and status reports.
-                    </ListItem>
-                  </ul>
-                </NavigationMenuContent>
+                <NavigationMenuLink asChild>
+                  <Link
+                    href="/weapons"
+                    className="group bg-background hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground data-[active]:bg-accent/50 data-[state=open]:bg-accent/50 inline-flex h-9 w-max items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors focus:outline-none disabled:pointer-events-none disabled:opacity-50"
+                  >
+                    Weapons
+                  </Link>
+                </NavigationMenuLink>
               </NavigationMenuItem>
 
               <NavigationMenuItem>
