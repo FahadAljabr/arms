@@ -44,6 +44,10 @@ export const maintenenceRecordRouter = createTRPCRouter({
         id: true,
         createdAt: true,
         updatedAt: true,
+        createdBy: true,
+        updatedBy: true,
+        deletedAt: true,
+        deletedBy: true,
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -53,9 +57,11 @@ export const maintenenceRecordRouter = createTRPCRouter({
         );
       }
 
+      const actor = ctx.user.id;
+
       const [created] = await ctx.db
         .insert(maintenanceRecords)
-        .values(input)
+        .values({ ...input, createdBy: actor, updatedBy: actor })
         .returning();
       return created;
     }),
@@ -64,7 +70,15 @@ export const maintenenceRecordRouter = createTRPCRouter({
       // Use the insert schema but make all fields optional except for id which is required
       insertMaintenanceRecordSchema
         .partial()
-        .extend({ id: z.number().int().positive() }),
+        .extend({ id: z.number().int().positive() })
+        .omit({
+          createdAt: true,
+          updatedAt: true,
+          createdBy: true,
+          updatedBy: true,
+          deletedAt: true,
+          deletedBy: true,
+        }),
     )
     .mutation(async ({ ctx, input }) => {
       if (!ctx.user || !ctx.roles?.includes("technician")) {
@@ -72,10 +86,12 @@ export const maintenenceRecordRouter = createTRPCRouter({
           "Forbidden: only technicians can update maintenance records",
         );
       }
+      const actor = ctx.user.id;
+      const { id, ...data } = input;
       const [updated] = await ctx.db
         .update(maintenanceRecords)
-        .set(input)
-        .where(eq(maintenanceRecords.id, input.id))
+        .set({ ...data, updatedBy: actor })
+        .where(eq(maintenanceRecords.id, id))
         .returning();
       return updated;
     }),
@@ -87,6 +103,8 @@ export const maintenenceRecordRouter = createTRPCRouter({
         updatedAt: true,
         deletedAt: true,
         deletedBy: true,
+        createdBy: true,
+        updatedBy: true,
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -96,9 +114,11 @@ export const maintenenceRecordRouter = createTRPCRouter({
         );
       }
 
+      const actor = ctx.user.id;
+
       const [created] = await ctx.db
         .insert(maintenanceRecordParts)
-        .values(input)
+        .values({ ...input, createdBy: actor, updatedBy: actor })
         .returning();
       return created;
     }),
@@ -139,11 +159,13 @@ export const maintenenceRecordRouter = createTRPCRouter({
           "Forbidden: only technicians can mark maintenance records as Closed",
         );
       }
+      const actor = ctx.user.id;
       const [updated] = await ctx.db
         .update(maintenanceRecords)
         .set({
           status: "Closed",
           completionDate: new Date(),
+          updatedBy: actor,
         })
         .where(eq(maintenanceRecords.id, input.id))
         .returning();
@@ -159,6 +181,10 @@ export const maintenancePlanRouter = createTRPCRouter({
         id: true,
         createdAt: true,
         updatedAt: true,
+        createdBy: true,
+        updatedBy: true,
+        deletedAt: true,
+        deletedBy: true,
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -167,9 +193,10 @@ export const maintenancePlanRouter = createTRPCRouter({
           "Forbidden: only technicians can create maintenance plans",
         );
       }
+      const actor = ctx.user.id;
       const [created] = await ctx.db
         .insert(maintenancePlans)
-        .values(input)
+        .values({ ...input, createdBy: actor, updatedBy: actor })
         .returning();
       return created;
     }),
@@ -197,7 +224,15 @@ export const maintenancePlanRouter = createTRPCRouter({
     .input(
       insertMaintenancePlanSchema
         .partial()
-        .extend({ id: z.number().int().positive() }),
+        .extend({ id: z.number().int().positive() })
+        .omit({
+          createdAt: true,
+          updatedAt: true,
+          createdBy: true,
+          updatedBy: true,
+          deletedAt: true,
+          deletedBy: true,
+        }),
     )
     .mutation(async ({ ctx, input }) => {
       if (!ctx.user || !ctx.roles?.includes("technician")) {
@@ -206,10 +241,12 @@ export const maintenancePlanRouter = createTRPCRouter({
         );
       }
 
+      const actor = ctx.user.id;
+      const { id, ...data } = input;
       const [updated] = await ctx.db
         .update(maintenancePlans)
-        .set(input)
-        .where(eq(maintenancePlans.id, input.id))
+        .set({ ...data, updatedBy: actor })
+        .where(eq(maintenancePlans.id, id))
         .returning();
 
       return updated;
@@ -260,6 +297,10 @@ export const sparePartsRouter = createTRPCRouter({
         id: true,
         createdAt: true,
         updatedAt: true,
+        createdBy: true,
+        updatedBy: true,
+        deletedAt: true,
+        deletedBy: true,
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -267,9 +308,11 @@ export const sparePartsRouter = createTRPCRouter({
         throw new Error("Forbidden: only technicians can create spare parts");
       }
 
+      const actor = ctx.user.id;
+
       const [created] = await ctx.db
         .insert(spareParts)
-        .values(input)
+        .values({ ...input, createdBy: actor, updatedBy: actor })
         .returning();
       return created;
     }),
@@ -278,17 +321,27 @@ export const sparePartsRouter = createTRPCRouter({
     .input(
       insertSparePartSchema
         .partial()
-        .extend({ id: z.number().int().positive() }),
+        .extend({ id: z.number().int().positive() })
+        .omit({
+          createdAt: true,
+          updatedAt: true,
+          createdBy: true,
+          updatedBy: true,
+          deletedAt: true,
+          deletedBy: true,
+        }),
     )
     .mutation(async ({ ctx, input }) => {
       if (!ctx.user || !ctx.roles?.includes("technician")) {
         throw new Error("Forbidden: only technicians can update spare parts");
       }
 
+      const actor = ctx.user.id;
+      const { id, ...data } = input;
       const [updated] = await ctx.db
         .update(spareParts)
-        .set(input)
-        .where(eq(spareParts.id, input.id))
+        .set({ ...data, updatedBy: actor })
+        .where(eq(spareParts.id, id))
         .returning();
       return updated;
     }),
