@@ -17,6 +17,9 @@ export const maintenenceRecordRouter = createTRPCRouter({
   // Get all maintenance records
   getAll: protectedProcedure.query(async ({ ctx }) => {
     const rows = await ctx.db.query.maintenanceRecords.findMany({
+      with: {
+        asset: true,
+      },
       orderBy: (maintenanceRecords, { desc }) => [
         desc(maintenanceRecords.createdAt),
       ],

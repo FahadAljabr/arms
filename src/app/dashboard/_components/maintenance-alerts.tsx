@@ -1,82 +1,148 @@
-import { Alert, AlertDescription } from "~/components/ui/alert"
-import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
-import { AlertTriangle, Info, AlertCircle } from "lucide-react"
+"use client";
 
-interface MaintenanceAlert {
-  type: "urgent" | "warning" | "info"
-  message: string
-}
+import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
+import { AlertTriangle, Info, AlertCircle } from "lucide-react";
+import { api } from "~/trpc/react";
+import { useMemo } from "react";
 
-const alerts: MaintenanceAlert[] = [
-  {
-    type: "urgent",
-    message: "Vehicle TR-067 overdue for inspection by 15 days",
-  },
-  {
-    type: "warning",
-    message: "8 vehicles scheduled for maintenance this week",
-  },
-  {
-    type: "info",
-    message: "New maintenance protocols updated for armored vehicles",
-  },
-  {
-    type: "urgent",
-    message: "Weapon W-4523 requires immediate inspection",
-  },
-]
+type AlertType = "urgent" | "warning" | "info";
 
-function getAlertIcon(type: MaintenanceAlert["type"]) {
+function getAlertIcon(type: AlertType) {
   switch (type) {
     case "urgent":
-      return <AlertTriangle className="h-4 w-4" />
+      return <AlertTriangle className="h-4 w-4" />;
     case "warning":
-      return <AlertCircle className="h-4 w-4" />
+      return <AlertCircle className="h-4 w-4" />;
     case "info":
-      return <Info className="h-4 w-4" />
+      return <Info className="h-4 w-4" />;
   }
 }
 
-function getAlertVariant(type: MaintenanceAlert["type"]) {
+function getAlertVariant(type: AlertType) {
   switch (type) {
     case "urgent":
-      return "destructive"
+      return "destructive";
     case "warning":
-      return "default"
+      return "default";
     case "info":
-      return "default"
+      return "default";
   }
 }
 
-function getAlertPrefix(type: MaintenanceAlert["type"]) {
+function getAlertPrefix(type: AlertType) {
   switch (type) {
     case "urgent":
-      return "URGENT:"
+      return "URGENT:";
     case "warning":
-      return "WARNING:"
+      return "WARNING:";
     case "info":
-      return "INFO:"
+      return "INFO:";
   }
 }
 
 export function MaintenanceAlerts() {
+  const {
+    data: plans,
+    isLoading: plansLoading,
+    isError: plansError,
+    error: plansErr,
+  } = api.maintenancePlanRouter.getAll.useQuery();
+  const {
+    data: assets,
+    isLoading: assetsLoading,
+    isError: assetsError,
+    error: assetsErr,
+  } = api.asset.getAll.useQuery();
+
+  const today = new Date();
+  const computed = useMemo(() => {
+    const alerts: Array<{ type: AlertType; message: string }> = [];
+    const overdue = (plans ?? []).filter(
+      (p) => p.nextDueDate && new Date(p.nextDueDate) < today,
+    );
+    const dueSoon = (plans ?? []).filter((p) => {
+      if (!p.nextDueDate) return false;
+      const d = new Date(p.nextDueDate);
+      const diffDays = Math.ceil(
+        (d.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
+      );
+      return diffDays >= 0 && diffDays <= 7;
+    });
+    const inMaintenance = (assets ?? []).filter(
+      (a) => a.status === "In Maintenance",
+    );
+
+    if (overdue.length > 0) {
+      alerts.push({
+        type: "urgent",
+        message: `${overdue.length} assets overdue for maintenance`,
+      });
+    }
+    if (dueSoon.length > 0) {
+      alerts.push({
+        type: "warning",
+        message: `${dueSoon.length} assets due for maintenance within 7 days`,
+      });
+    }
+    if (inMaintenance.length > 0) {
+      alerts.push({
+        type: "info",
+        message: `${inMaintenance.length} assets currently in maintenance`,
+      });
+    }
+
+    return alerts;
+  }, [plans, assets]);
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>Maintenance Alerts</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        {alerts.map((alert, index) => (
-          <Alert key={index} variant={getAlertVariant(alert.type)} className={
-            alert.type === "urgent" ? "border-dashed" : ""
-          }>
-            {getAlertIcon(alert.type)}
+        {plansLoading || assetsLoading ? (
+          <div className="space-y-2">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div
+                key={i}
+                className="bg-muted h-10 w-full animate-pulse rounded"
+              />
+            ))}
+          </div>
+        ) : plansError || assetsError ? (
+          <Alert variant="destructive">
+            <AlertTitle>Failed to load alerts</AlertTitle>
             <AlertDescription>
-              <strong>{getAlertPrefix(alert.type)}</strong> {alert.message}
+              {String(
+                (plansErr as unknown as { message?: string })?.message ??
+                  (assetsErr as unknown as { message?: string })?.message ??
+                  "Unknown error",
+              )}
             </AlertDescription>
           </Alert>
-        ))}
+        ) : computed.length === 0 ? (
+          <Alert>
+            {getAlertIcon("info")}
+            <AlertDescription>
+              No maintenance alerts at this time.
+            </AlertDescription>
+          </Alert>
+        ) : (
+          computed.map((alert, index) => (
+            <Alert
+              key={index}
+              variant={getAlertVariant(alert.type)}
+              className={alert.type === "urgent" ? "border-dashed" : ""}
+            >
+              {getAlertIcon(alert.type)}
+              <AlertDescription>
+                <strong>{getAlertPrefix(alert.type)}</strong> {alert.message}
+              </AlertDescription>
+            </Alert>
+          ))
+        )}
       </CardContent>
     </Card>
-  )
+  );
 }

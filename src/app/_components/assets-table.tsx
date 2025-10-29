@@ -23,7 +23,7 @@ export type AssetsTableProps = {
   // Optional filters
   filter?: (asset: Asset) => boolean;
   emptyMessage?: string;
-  sectorId?: number;
+  sector?: string;
   assetTypes?: Array<Asset["assetType"]>;
 };
 
@@ -32,11 +32,11 @@ export function AssetsTable({
   pageSize = 10,
   filter,
   emptyMessage = "No assets found.",
-  sectorId,
+  sector,
   assetTypes,
 }: AssetsTableProps) {
-  const query = sectorId
-    ? api.asset.getBySector.useQuery({ sectorId })
+  const query = sector
+    ? api.asset.getBySector.useQuery({ sector })
     : api.asset.getAll.useQuery();
   const { data, isLoading, isError, error, refetch, isFetching } = query;
 
@@ -108,8 +108,8 @@ export function AssetsTable({
                 <TableHeader>
                   <TableRow>
                     <TableHead>ID</TableHead>
-                    <TableHead>UID</TableHead>
                     <TableHead>Type</TableHead>
+                    <TableHead>Model</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Sector</TableHead>
                     <TableHead className="text-right">Current KM</TableHead>
@@ -120,14 +120,14 @@ export function AssetsTable({
                   {pageItems.map((a) => (
                     <TableRow key={a.id}>
                       <TableCell className="font-medium">{a.id}</TableCell>
-                      <TableCell>{a.assetUid}</TableCell>
                       <TableCell>{a.assetType}</TableCell>
+                      <TableCell>{a.model ?? "—"}</TableCell>
                       <TableCell>
                         <Badge variant={statusToVariant(a.status)}>
                           {a.status}
                         </Badge>
                       </TableCell>
-                      <TableCell>#{a.sectorId}</TableCell>
+                      <TableCell>{a.sector}</TableCell>
                       <TableCell className="text-right">
                         {a.currentKm ?? "—"}
                       </TableCell>
