@@ -1,16 +1,24 @@
-import { DashboardHeader } from "./_components/header"
-import { StatsGrid } from "./_components/stats-grid"
-import { QuickActions, PerformanceChart, UpcomingMaintenance } from "./_components/additional-components"
-import { MaintenanceActivitiesTable } from "./_components/maintenance-activities-table"
-import { MaintenanceAlerts } from "./_components/maintenance-alerts"
+import { DashboardHeader } from "./_components/header";
+import { StatsGrid } from "./_components/stats-grid";
+import {
+  QuickActions,
+  PerformanceChart,
+  UpcomingMaintenance,
+} from "./_components/additional-components";
+import { MaintenanceActivitiesTable } from "./_components/maintenance-activities-table";
+import { MaintenanceAlerts } from "./_components/maintenance-alerts";
+import { withAuth } from "@workos-inc/authkit-nextjs";
+import { hasRole } from "~/server/auth/roles";
 import {
   QuickNavigation,
   SectorBreakdown,
   SystemStatus,
   RecentActions,
-} from "./_components/sidebar-components"
+} from "./_components/sidebar-components";
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const { user } = await withAuth({ ensureSignedIn: true });
+  const isTechnician = hasRole(user, "technician");
   return (
     <div className="container mx-auto px-4 py-6">
       {/* Header */}
@@ -18,18 +26,20 @@ export default function DashboardPage() {
 
       {/* Main Content */}
       <div className="space-y-6">
-        <h2 id="overview" className="text-2xl font-semibold">System Overview</h2>
+        <h2 id="overview" className="text-2xl font-semibold">
+          System Overview
+        </h2>
 
         {/* Stats Grid */}
         <StatsGrid />
 
         {/* Quick Actions */}
-        <QuickActions />
+        <QuickActions isTechnician={isTechnician} />
 
         {/* Dashboard Grid - Main Content and Sidebar */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           {/* Main Content Area - Takes up 2/3 of the space */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="space-y-6 lg:col-span-2">
             {/* Dashboard Grid - Activities and Alerts */}
             <div className="grid grid-cols-1 gap-6">
               <MaintenanceActivitiesTable />
@@ -56,9 +66,10 @@ export default function DashboardPage() {
       </div>
 
       {/* Footer */}
-      <footer className="mt-12 pt-6 border-t border-border text-center text-xs text-muted-foreground">
+      <footer className="border-border text-muted-foreground mt-12 border-t pt-6 text-center text-xs">
         <p>
-          &copy; 2025 Vehicle & Weapon Maintenance System. All rights reserved. |{" "}
+          &copy; 2025 Vehicle & Weapon Maintenance System. All rights reserved.
+          |{" "}
           <a
             href="https://www.example.com/support"
             target="_blank"
@@ -70,5 +81,5 @@ export default function DashboardPage() {
         </p>
       </footer>
     </div>
-  )
+  );
 }
