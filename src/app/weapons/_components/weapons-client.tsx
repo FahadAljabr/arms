@@ -26,6 +26,16 @@ import {
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
 import { Search, Shield, Plus, Filter, Wrench } from "lucide-react";
 
+// Stable list of weapon types used for filtering and display
+const WEAPON_TYPES = [
+  "Pistol",
+  "Rifle",
+  "Shotgun",
+  "Submachine Gun",
+  "Sniper Rifle",
+  "Other",
+] as const;
+
 export default function WeaponsClient({
   isTechnician,
 }: {
@@ -48,18 +58,9 @@ export default function WeaponsClient({
   type CreateAssetInput = RouterInputs["asset"]["create"];
 
   // Weapon types and derived collection
-  const WEAPON_TYPES = [
-    "Pistol",
-    "Rifle",
-    "Shotgun",
-    "Submachine Gun",
-    "Sniper Rifle",
-    "Other",
-  ] as const;
-  const weaponTypes = useMemo(
-    () => WEAPON_TYPES as unknown as ReadonlyArray<Asset["assetType"]>,
-    [],
-  );
+  const weaponTypes = WEAPON_TYPES as unknown as ReadonlyArray<
+    Asset["assetType"]
+  >;
   const weaponAssets = useMemo(() => {
     const rows = allQuery.data ?? [];
     return rows.filter((a) => weaponTypes.includes(a.assetType));
@@ -165,15 +166,15 @@ export default function WeaponsClient({
     for (const a of weaponAssets) {
       const t = a.assetType as unknown as (typeof WEAPON_TYPES)[number];
       if (WEAPON_TYPES.includes(t)) c[t] = (c[t] ?? 0) + 1;
-      else c["Other"] = (c["Other"] ?? 0) + 1;
+      else c.Other = (c.Other ?? 0) + 1;
     }
     return {
-      Pistol: c["Pistol"] ?? 0,
-      Rifle: c["Rifle"] ?? 0,
-      Shotgun: c["Shotgun"] ?? 0,
+      Pistol: c.Pistol ?? 0,
+      Rifle: c.Rifle ?? 0,
+      Shotgun: c.Shotgun ?? 0,
       "Submachine Gun": c["Submachine Gun"] ?? 0,
       "Sniper Rifle": c["Sniper Rifle"] ?? 0,
-      Other: c["Other"] ?? 0,
+      Other: c.Other ?? 0,
     } as const;
   }, [weaponAssets]);
 
@@ -477,25 +478,25 @@ export default function WeaponsClient({
                     <div className="flex justify-between">
                       <span>Pistols:</span>
                       <span className="font-medium">
-                        {typeCounts["Pistol"]} units
+                        {typeCounts.Pistol} units
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span>Rifles:</span>
                       <span className="font-medium">
-                        {typeCounts["Rifle"]} units
+                        {typeCounts.Rifle} units
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span>Shotguns:</span>
                       <span className="font-medium">
-                        {typeCounts["Shotgun"]} units
+                        {typeCounts.Shotgun} units
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span>Other:</span>
                       <span className="font-medium">
-                        {typeCounts["Other"]} units
+                        {typeCounts.Other} units
                       </span>
                     </div>
                   </div>
