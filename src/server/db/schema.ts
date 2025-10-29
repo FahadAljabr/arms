@@ -194,6 +194,7 @@ export const maintenancePlans = createTable(
       date.setDate(date.getDate() + 30);
       return date;
     }),
+    AssignedTechnicianId: t.varchar({ length: 100 }),
     lastMaintenanceKm: t.integer(),
     createdAt: t.timestamp({ withTimezone: true }).$defaultFn(() => new Date()),
     updatedAt: t

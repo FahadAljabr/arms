@@ -6,6 +6,7 @@ import {
   maintenenceRecordRouter,
   sparePartsRouter,
 } from "./routers/maintenence";
+import { usersRouter } from "./routers/users";
 
 /**
  * This is the primary router for your server.
@@ -18,6 +19,7 @@ export const appRouter = createTRPCRouter({
   maintenancePlan: maintenancePlanRouter,
   maintenenceRecord: maintenenceRecordRouter,
   spareParts: sparePartsRouter,
+  users: usersRouter,
 });
 
 // export type definition of API

@@ -1,7 +1,7 @@
 "use client";
 
 import { Card, CardContent } from "~/components/ui/card";
-import { api } from "~/trpc/react";
+import { api, type RouterOutputs } from "~/trpc/react";
 
 interface StatCardProps {
   number: string;
@@ -23,7 +23,7 @@ export function StatsGrid() {
   const { data: assets, isLoading: assetsLoading } =
     api.asset.getAll.useQuery();
   const { data: plans, isLoading: plansLoading } =
-    api.maintenancePlanRouter.getAll.useQuery();
+    api.maintenancePlan.getAll.useQuery();
 
   const totalWeapons = (assets ?? []).filter(
     (a) => a.assetType === "Rifle",
@@ -36,8 +36,9 @@ export function StatsGrid() {
   ).length;
 
   const today = new Date();
+  type Plan = RouterOutputs["maintenancePlan"]["getAll"][number];
   const overdue = (plans ?? []).filter(
-    (p) => p.nextDueDate && new Date(p.nextDueDate) < today,
+    (p: Plan) => p.nextDueDate && new Date(p.nextDueDate) < today,
   ).length;
 
   const loading = assetsLoading || plansLoading;

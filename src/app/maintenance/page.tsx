@@ -9,6 +9,8 @@ import {
   TableHeader,
   TableRow,
 } from "~/components/ui/table";
+import { useAuth } from "@workos-inc/authkit-nextjs/components";
+
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -27,6 +29,9 @@ import { api } from "~/trpc/react";
 type BadgeVariant = "default" | "secondary" | "destructive" | "outline";
 
 export default function MaintenancePage() {
+  const { roles, user } = useAuth();
+
+  const isTechnician = roles?.includes("technician");
   // Queries
   const {
     data: maintenanceRecords,
@@ -56,6 +61,14 @@ export default function MaintenancePage() {
   } = api.asset.getAll.useQuery();
 
   const utils = api.useUtils();
+
+  // Technicians for assignment (from WorkOS)
+  const {
+    data: technicians,
+    isLoading: techLoading,
+    isError: techError,
+    error: techErr,
+  } = api.users.getTechnicians.useQuery();
 
   // Create Plan mutation
   const createPlan = api.maintenancePlan.create.useMutation({
@@ -312,230 +325,244 @@ export default function MaintenancePage() {
         </div>
 
         {/* Schedule New Maintenance Form */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Schedule New Maintenance</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form
-              className="space-y-6"
-              onSubmit={(e) => {
-                e.preventDefault();
-                setSubmitMsg(null);
-                const assetIdNum = Number(form.assetId);
-                if (!assetIdNum || Number.isNaN(assetIdNum)) {
-                  setSubmitMsg({
-                    type: "error",
-                    text: "Please select a valid Asset",
-                  });
-                  return;
-                }
-                if (!form.scheduledDate) {
-                  setSubmitMsg({
-                    type: "error",
-                    text: "Please choose a scheduled date",
-                  });
-                  return;
-                }
-                const planDescription = [form.maintenanceType, form.description]
-                  .filter(Boolean)
-                  .join(" — ");
-                createPlan.mutate({
-                  assetId: assetIdNum,
-                  planDescription: planDescription || "Scheduled maintenance",
-                  // optional fields
-                  nextDueDate: new Date(form.scheduledDate),
-                  // frequencyDays / frequencyKm not collected in this simple form
-                } as any);
-              }}
-            >
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="item-id">Vehicle/Weapon *</Label>
-                  <Select
-                    value={form.assetId}
-                    onValueChange={(v) =>
-                      setForm((f) => ({ ...f, assetId: v }))
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue
-                        placeholder={
-                          assetsLoading
-                            ? "Loading assets…"
-                            : assetsError
-                              ? "Failed to load assets"
-                              : "Select Asset"
-                        }
-                      />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(assets ?? []).map((a) => (
-                        <SelectItem key={a.id} value={String(a.id)}>
-                          {`Asset-${a.id}`} {a.model ? `— ${a.model}` : ""}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="maintenance-type">Maintenance Type *</Label>
-                  <Select
-                    value={form.maintenanceType}
-                    onValueChange={(v) =>
-                      setForm((f) => ({ ...f, maintenanceType: v }))
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Routine Service">
-                        Routine Service
-                      </SelectItem>
-                      <SelectItem value="Safety Inspection">
-                        Safety Inspection
-                      </SelectItem>
-                      <SelectItem value="Repair Work">Repair Work</SelectItem>
-                      <SelectItem value="Major Overhaul">
-                        Major Overhaul
-                      </SelectItem>
-                      <SelectItem value="Cleaning & Lubrication">
-                        Cleaning & Lubrication
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="scheduled-date">Scheduled Date *</Label>
-                  <Input
-                    id="scheduled-date"
-                    type="date"
-                    value={form.scheduledDate}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, scheduledDate: e.target.value }))
-                    }
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="severity">Severity Level</Label>
-                  <Select
-                    value={form.severity}
-                    onValueChange={(v) =>
-                      setForm((f) => ({ ...f, severity: v }))
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Medium" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="low">Low</SelectItem>
-                      <SelectItem value="medium">Medium</SelectItem>
-                      <SelectItem value="high">High</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="technician">Assigned Technician</Label>
-                  <Select
-                    value={form.technician}
-                    onValueChange={(v) =>
-                      setForm((f) => ({ ...f, technician: v }))
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Auto-assign" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="tech1">
-                        John Smith - Vehicle Specialist
-                      </SelectItem>
-                      <SelectItem value="tech2">
-                        Sarah Johnson - Weapons Expert
-                      </SelectItem>
-                      <SelectItem value="tech3">
-                        Mike Davis - General Maintenance
-                      </SelectItem>
-                      <SelectItem value="tech4">
-                        Lisa Brown - Electronics
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="estimated-hours">Estimated Hours</Label>
-                  <Input
-                    id="estimated-hours"
-                    type="number"
-                    placeholder="2.5"
-                    step="0.5"
-                    value={form.estimatedHours}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, estimatedHours: e.target.value }))
-                    }
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="maintenance-notes">
-                  Maintenance Description
-                </Label>
-                <Textarea
-                  id="maintenance-notes"
-                  placeholder="Describe the maintenance work required..."
-                  value={form.description}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, description: e.target.value }))
-                  }
-                />
-              </div>
-
-              <div className="flex gap-2">
-                <Button type="submit" disabled={createPlan.isPending}>
-                  {createPlan.isPending
-                    ? "Scheduling…"
-                    : "Schedule Maintenance"}
-                </Button>
-                <Button
-                  type="reset"
-                  variant="outline"
-                  onClick={() => {
-                    setForm({
-                      assetId: "",
-                      maintenanceType: "",
-                      scheduledDate: "",
-                      severity: "",
-                      technician: "",
-                      estimatedHours: "",
-                      description: "",
+        {isTechnician ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>Schedule New Maintenance</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form
+                className="space-y-6"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  setSubmitMsg(null);
+                  const assetIdNum = Number(form.assetId);
+                  if (!assetIdNum || Number.isNaN(assetIdNum)) {
+                    setSubmitMsg({
+                      type: "error",
+                      text: "Please select a valid Asset",
                     });
-                    setSubmitMsg(null);
-                  }}
-                >
-                  Clear Form
-                </Button>
-              </div>
-              {submitMsg ? (
-                <div
-                  className={
-                    submitMsg.type === "success"
-                      ? "mt-2 text-sm text-green-600"
-                      : "mt-2 text-sm text-red-600"
+                    return;
                   }
-                >
-                  {submitMsg.text}
+                  if (!form.scheduledDate) {
+                    setSubmitMsg({
+                      type: "error",
+                      text: "Please choose a scheduled date",
+                    });
+                    return;
+                  }
+                  const planDescription = [
+                    form.maintenanceType,
+                    form.description,
+                  ]
+                    .filter(Boolean)
+                    .join(" — ");
+                  createPlan.mutate({
+                    assetId: assetIdNum,
+                    planDescription: planDescription || "Scheduled maintenance",
+                    // optional fields
+                    nextDueDate: new Date(form.scheduledDate),
+                    AssignedTechnicianId: form.technician || user?.id,
+                    // frequencyDays / frequencyKm not collected in this simple form
+                  } as any);
+                }}
+              >
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="item-id">Vehicle/Weapon *</Label>
+                    <Select
+                      value={form.assetId}
+                      onValueChange={(v) =>
+                        setForm((f) => ({ ...f, assetId: v }))
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue
+                          placeholder={
+                            assetsLoading
+                              ? "Loading assets…"
+                              : assetsError
+                                ? "Failed to load assets"
+                                : "Select Asset"
+                          }
+                        />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(assets ?? []).map((a) => (
+                          <SelectItem key={a.id} value={String(a.id)}>
+                            {`Asset-${a.id}`} {a.model ? `— ${a.model}` : ""}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="maintenance-type">Maintenance Type *</Label>
+                    <Select
+                      value={form.maintenanceType}
+                      onValueChange={(v) =>
+                        setForm((f) => ({ ...f, maintenanceType: v }))
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select Type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Routine Service">
+                          Routine Service
+                        </SelectItem>
+                        <SelectItem value="Safety Inspection">
+                          Safety Inspection
+                        </SelectItem>
+                        <SelectItem value="Repair Work">Repair Work</SelectItem>
+                        <SelectItem value="Major Overhaul">
+                          Major Overhaul
+                        </SelectItem>
+                        <SelectItem value="Cleaning & Lubrication">
+                          Cleaning & Lubrication
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-              ) : null}
-            </form>
-          </CardContent>
-        </Card>
+
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="scheduled-date">Scheduled Date *</Label>
+                    <Input
+                      id="scheduled-date"
+                      type="date"
+                      value={form.scheduledDate}
+                      onChange={(e) =>
+                        setForm((f) => ({
+                          ...f,
+                          scheduledDate: e.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="severity">Severity Level</Label>
+                    <Select
+                      value={form.severity}
+                      onValueChange={(v) =>
+                        setForm((f) => ({ ...f, severity: v }))
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Medium" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="low">Low</SelectItem>
+                        <SelectItem value="medium">Medium</SelectItem>
+                        <SelectItem value="high">High</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="technician">Assigned Technician</Label>
+                    <Select
+                      value={form.technician}
+                      onValueChange={(v) =>
+                        setForm((f) => ({ ...f, technician: v }))
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue
+                          placeholder={
+                            techLoading
+                              ? "Loading technicians…"
+                              : techError
+                                ? `Failed to load technicians${techErr?.message ? ` — ${techErr.message}` : ""}`
+                                : "Auto-assign"
+                          }
+                        />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(technicians ?? []).map((t) => (
+                          <SelectItem key={t.id} value={String(t.id)}>
+                            {t.firstName + " " + t.lastName}{" "}
+                            {t.email ? `— ${t.email}` : ""}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="estimated-hours">Estimated Hours</Label>
+                    <Input
+                      id="estimated-hours"
+                      type="number"
+                      placeholder="2.5"
+                      step="0.5"
+                      value={form.estimatedHours}
+                      onChange={(e) =>
+                        setForm((f) => ({
+                          ...f,
+                          estimatedHours: e.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="maintenance-notes">
+                    Maintenance Description
+                  </Label>
+                  <Textarea
+                    id="maintenance-notes"
+                    placeholder="Describe the maintenance work required..."
+                    value={form.description}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, description: e.target.value }))
+                    }
+                  />
+                </div>
+
+                <div className="flex gap-2">
+                  <Button type="submit" disabled={createPlan.isPending}>
+                    {createPlan.isPending
+                      ? "Scheduling…"
+                      : "Schedule Maintenance"}
+                  </Button>
+                  <Button
+                    type="reset"
+                    variant="outline"
+                    onClick={() => {
+                      setForm({
+                        assetId: "",
+                        maintenanceType: "",
+                        scheduledDate: "",
+                        severity: "",
+                        technician: "",
+                        estimatedHours: "",
+                        description: "",
+                      });
+                      setSubmitMsg(null);
+                    }}
+                  >
+                    Clear Form
+                  </Button>
+                </div>
+                {submitMsg ? (
+                  <div
+                    className={
+                      submitMsg.type === "success"
+                        ? "mt-2 text-sm text-green-600"
+                        : "mt-2 text-sm text-red-600"
+                    }
+                  >
+                    {submitMsg.text}
+                  </div>
+                ) : null}
+              </form>
+            </CardContent>
+          </Card>
+        ) : null}
 
         {/* Maintenance Calendar */}
         <Card>

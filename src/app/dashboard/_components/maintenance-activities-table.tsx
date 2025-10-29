@@ -14,7 +14,7 @@ import { Badge } from "~/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
 import { Button } from "~/components/ui/button";
 import { api, type RouterOutputs } from "~/trpc/react";
-type Record = RouterOutputs["maintenenceRecordRouter"]["getAll"][number];
+type Record = RouterOutputs["maintenenceRecord"]["getAll"][number];
 
 function getStatusVariant(status: Record["status"]) {
   switch (status) {
@@ -31,7 +31,7 @@ function getStatusVariant(status: Record["status"]) {
 
 export function MaintenanceActivitiesTable() {
   const { data, isLoading, isError, error, refetch, isFetching } =
-    api.maintenenceRecordRouter.getAll.useQuery();
+    api.maintenenceRecord.getAll.useQuery();
 
   const [page, setPage] = useState(1);
   const pageSize = 10;
@@ -41,7 +41,7 @@ export function MaintenanceActivitiesTable() {
     setPage(1);
   }, [isFetching]);
 
-  const items = useMemo(() => data ?? [], [data]);
+  const items = useMemo(() => (data ?? []) as Record[], [data]);
   const total = items.length;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const start = (page - 1) * pageSize;

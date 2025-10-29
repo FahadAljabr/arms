@@ -3,7 +3,7 @@
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { AlertTriangle, Info, AlertCircle } from "lucide-react";
-import { api } from "~/trpc/react";
+import { api, type RouterOutputs } from "~/trpc/react";
 import { useMemo } from "react";
 
 type AlertType = "urgent" | "warning" | "info";
@@ -47,7 +47,7 @@ export function MaintenanceAlerts() {
     isLoading: plansLoading,
     isError: plansError,
     error: plansErr,
-  } = api.maintenancePlanRouter.getAll.useQuery();
+  } = api.maintenancePlan.getAll.useQuery();
   const {
     data: assets,
     isLoading: assetsLoading,
@@ -56,12 +56,14 @@ export function MaintenanceAlerts() {
   } = api.asset.getAll.useQuery();
 
   const today = new Date();
+  type Plan = RouterOutputs["maintenancePlan"]["getAll"][number];
+
   const computed = useMemo(() => {
     const alerts: Array<{ type: AlertType; message: string }> = [];
     const overdue = (plans ?? []).filter(
-      (p) => p.nextDueDate && new Date(p.nextDueDate) < today,
+      (p: Plan) => p.nextDueDate && new Date(p.nextDueDate) < today,
     );
-    const dueSoon = (plans ?? []).filter((p) => {
+    const dueSoon = (plans ?? []).filter((p: Plan) => {
       if (!p.nextDueDate) return false;
       const d = new Date(p.nextDueDate);
       const diffDays = Math.ceil(
