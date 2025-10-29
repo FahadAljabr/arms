@@ -158,37 +158,6 @@ src/
 - **Secure Session Management** - JWT tokens with proper expiration
 - **Audit Trail Logging** - Complete activity tracking (Coming Soon)
 
-### WorkOS as the Source of Truth (Users & Roles)
-
-This application now delegates all user identities and roles to WorkOS AuthKit and RBAC. The local database no longer stores users or roles. Instead, tables reference WorkOS user IDs (e.g., `user_01...`).
-
-- Sign-in, sessions, and logout are handled by `@workos-inc/authkit-nextjs`.
-- Role checks in the backend use WorkOS role data from the session; see `src/server/auth/roles.ts`.
-- Tables like maintenance records reference WorkOS user IDs directly; foreign keys to a local `users` table were removed.
-
-Required environment variables (see `src/env.js`):
-
-- `WORKOS_API_KEY` – Server-side key for WorkOS SDK
-- `WORKOS_CLIENT_ID` – Client ID for AuthKit
-- `WORKOS_COOKIE_PASSWORD` – 32+ char cookie secret
-
-Recommended dashboard setup in WorkOS:
-
-- Create an Organization for your environment (single-tenant) or multiple (multi-tenant).
-- Define roles (e.g., `technician`, `officer`) under RBAC.
-- Assign user memberships and roles within the Organization.
-
-Local DB migration (only if you are managing your own Postgres):
-
-```bash
-pnpm db:generate   # generate migration for schema changes
-pnpm db:push       # push changes to your dev database
-```
-
-Note: In development, we've kept compatibility stubs so existing UI compiles while roles/users are removed from the schema:
-
-- `postRouter.getLatest` returns `null` to keep client types compiling.
-
 ## 🎨 UI/UX Features
 
 - **Modern Design System** - Clean, professional interface
