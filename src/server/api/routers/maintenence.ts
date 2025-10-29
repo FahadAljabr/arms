@@ -8,6 +8,8 @@ import {
   spareParts,
   maintenancePlans,
   insertMaintenancePlanSchema,
+  insertMaintenanceRecordPartSchema,
+  maintenanceRecordParts,
 } from "~/server/db/schema";
 import { eq } from "drizzle-orm/sql/expressions/conditions";
 
@@ -64,6 +66,29 @@ export const maintenenceRecordRouter = createTRPCRouter({
           "Forbidden: only technicians can update maintenance records",
         );
       }
+    }),
+  // add record parts (conjuncture table)
+  addRecordParts: protectedProcedure
+    .input(
+      insertMaintenanceRecordPartSchema.omit({
+        createdAt: true,
+        updatedAt: true,
+        deletedAt: true,
+        deletedBy: true,
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      if (!ctx.user || !hasRole(ctx.user, "technician")) {
+        throw new Error(
+          "Forbidden: only technicians can add parts to maintenance records",
+        );
+      }
+
+      const [created] = await ctx.db
+        .insert(maintenanceRecordParts)
+        .values(input)
+        .returning();
+      return created;
     }),
   getByCategory: protectedProcedure
     .input(z.object({ category: z.string().min(2).max(100) }))
