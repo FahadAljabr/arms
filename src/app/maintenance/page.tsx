@@ -1,4 +1,5 @@
-import React from "react";
+"use client";
+import React, { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import {
   Table,
@@ -21,97 +22,55 @@ import {
   SelectValue,
 } from "~/components/ui/select";
 import { CalendarIcon, ClockIcon, UserIcon, AlertTriangle } from "lucide-react";
+import { api } from "~/trpc/react";
+
+type BadgeVariant = "default" | "secondary" | "destructive" | "outline";
 
 export default function MaintenancePage() {
-  const maintenanceData = [
-    {
-      id: "TR-045",
-      type: "Vehicle",
-      maintenance: "Brake System Repair",
-      technician: "John Smith",
-      started: "2025-09-23",
-      progress: "75% Complete",
-      severity: "HIGH",
-    },
-    {
-      id: "W-4523",
-      type: "Weapon",
-      maintenance: "Routine Cleaning",
-      technician: "Sarah Johnson",
-      started: "2025-09-25",
-      progress: "25% Complete",
-      severity: "URGENT",
-    },
-    {
-      id: "APC-012",
-      type: "Vehicle",
-      maintenance: "Engine Inspection",
-      technician: "Mike Davis",
-      started: "2025-09-24",
-      progress: "50% Complete",
-      severity: "MEDIUM",
-    },
-  ];
+  // Queries
+  const {
+    data: maintenanceRecords,
+    isLoading: recordsLoading,
+    isError: recordsError,
+    error: recordsErr,
+  } = api.maintenenceRecord.getAll.useQuery();
 
-  const calendarDays = [
-    { day: 23, items: [] },
-    {
-      day: 24,
-      items: [{ id: "POL-001", task: "Service", severity: "medium" }],
-    },
-    {
-      day: 25,
-      items: [
-        { id: "TR-045", task: "Repair", severity: "high" },
-        { id: "W-1234", task: "Clean", severity: "low" },
-      ],
-    },
-    {
-      day: 26,
-      items: [{ id: "APC-012", task: "Inspect", severity: "medium" }],
-    },
-    { day: 27, items: [{ id: "POL-033", task: "Service", severity: "low" }] },
-    { day: 28, items: [] },
-    { day: 29, items: [] },
-    { day: 30, items: [{ id: "TR-067", task: "URGENT", severity: "high" }] },
-    { day: 1, items: [] },
-    {
-      day: 2,
-      items: [{ id: "W-5567", task: "Inspect", severity: "medium" }],
-    },
-    { day: 3, items: [{ id: "POL-089", task: "Service", severity: "low" }] },
-    { day: 4, items: [] },
-    { day: 5, items: [] },
-    { day: 6, items: [] },
-  ];
+  const {
+    data: plans,
+    isLoading: plansLoading,
+    isError: plansError,
+    error: plansErr,
+  } = api.maintenancePlan.getAll.useQuery();
 
-  const timelineEvents = [
-    {
-      date: "September 24, 2025",
-      title:
-        "POL-001 - Oil change and filter replacement completed by John Smith (2.5 hours)",
-      status: "Completed successfully, vehicle returned to service",
-    },
-    {
-      date: "September 22, 2025",
-      title:
-        "W-9871 - Routine cleaning and inspection completed by Sarah Johnson (1.0 hours)",
-      status: "Passed all safety checks, no issues found",
-    },
-    {
-      date: "September 21, 2025",
-      title:
-        "TR-089 - Tire replacement and wheel alignment by Mike Davis (3.0 hours)",
-      status: "New tires installed, alignment within specifications",
-    },
-    {
-      date: "September 20, 2025",
-      title:
-        "APC-015 - Major engine overhaul completed by John Smith (16.5 hours)",
-      status: "Engine rebuilt, performance tests successful",
-    },
-  ];
-  const getSeverityColor = (severity: string) => {
+  const {
+    data: spareParts,
+    isLoading: partsLoading,
+    isError: partsError,
+  } = api.spareParts.getall.useQuery();
+
+  // Local pagination for active maintenance table
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
+
+  const activeRecords = useMemo(() => {
+    const all = (maintenanceRecords ?? []).filter((r) => r.status !== "Closed");
+    return all;
+  }, [maintenanceRecords]);
+
+  const pagedRecords = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return activeRecords.slice(start, start + pageSize);
+  }, [activeRecords, page]);
+
+  const totalPages = useMemo(
+    () => Math.max(1, Math.ceil(activeRecords.length / pageSize)),
+    [activeRecords.length],
+  );
+
+  const getSeverityColor = (
+    severity: string | null | undefined,
+  ): BadgeVariant => {
+    if (!severity) return "default";
     switch (severity.toLowerCase()) {
       case "critical":
         return "destructive";
@@ -125,6 +84,55 @@ export default function MaintenancePage() {
         return "default";
     }
   };
+
+  // Calendar: bucket maintenance plans by nextDueDate within the current month
+  const calendarDays = useMemo(() => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = today.getMonth();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const days = Array.from({ length: daysInMonth }, (_, i) => ({
+      day: i + 1,
+      items: [] as Array<{
+        id: string;
+        task: string;
+        severity: "low" | "medium" | "high";
+      }>,
+    }));
+
+    (plans ?? []).forEach((p) => {
+      if (!p.nextDueDate) return;
+      const due = new Date(p.nextDueDate as unknown as string);
+      if (due.getFullYear() === year && due.getMonth() === month) {
+        const d = due.getDate();
+        const severity = "medium" as const;
+        const id = `Asset-${p.assetId}`;
+        days[d - 1]?.items.push({ id, task: "Plan Due", severity });
+      }
+    });
+    return days;
+  }, [plans]);
+
+  const timelineEvents = useMemo(() => {
+    const rows = (maintenanceRecords ?? []).slice().sort((a, b) => {
+      const aTime = new Date(a.issueDate).getTime();
+      const bTime = new Date(b.issueDate).getTime();
+      return bTime - aTime;
+    });
+
+    return rows.slice(0, 10).map((r) => ({
+      date: new Date(r.issueDate).toLocaleDateString(undefined, {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      }),
+      title: `${r.asset?.model ?? "Asset"} - ${r.problemDescription}`,
+      status:
+        r.status === "Closed"
+          ? `Closed${r.completionDate ? ` on ${new Date(r.completionDate).toLocaleDateString()}` : ""}`
+          : r.status,
+    }));
+  }, [maintenanceRecords]);
 
   return (
     <div className="bg-background min-h-screen">
@@ -146,6 +154,7 @@ export default function MaintenancePage() {
             <CardTitle>Schedule New Maintenance</CardTitle>
           </CardHeader>
           <CardContent>
+            {/* TODO: wire to mutation api.maintenenceRecord.create with proper fields */}
             <form className="space-y-6">
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div className="space-y-2">
@@ -253,7 +262,11 @@ export default function MaintenancePage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <CalendarIcon className="h-5 w-5" />
-              Maintenance Calendar - September 2025
+              Maintenance Calendar -{" "}
+              {new Date().toLocaleString(undefined, {
+                month: "long",
+                year: "numeric",
+              })}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -268,27 +281,37 @@ export default function MaintenancePage() {
               ))}
             </div>
             <div className="grid grid-cols-7 gap-1">
-              {calendarDays.map((dayData, index) => (
-                <div key={index} className="min-h-[80px] rounded border p-2">
-                  <div className="mb-1 text-sm font-semibold">
-                    {dayData.day}
-                  </div>
-                  {dayData.items.map((item, itemIndex) => (
-                    <div
-                      key={itemIndex}
-                      className={`mb-1 rounded p-1 text-xs ${
-                        item.severity === "high"
-                          ? "border-red-300 bg-red-100 dark:bg-red-900/20"
-                          : item.severity === "medium"
-                            ? "border-yellow-300 bg-yellow-100 dark:bg-yellow-900/20"
-                            : "border-green-300 bg-green-100 dark:bg-green-900/20"
-                      }`}
-                    >
-                      {item.id} {item.task}
-                    </div>
-                  ))}
+              {plansLoading ? (
+                <div className="text-muted-foreground col-span-7 py-8 text-center text-sm">
+                  Loading calendar…
                 </div>
-              ))}
+              ) : plansError ? (
+                <div className="col-span-7 py-8 text-center text-sm text-red-500">
+                  {String(plansErr?.message ?? "Failed to load calendar")}
+                </div>
+              ) : (
+                calendarDays.map((dayData, index) => (
+                  <div key={index} className="min-h-[80px] rounded border p-2">
+                    <div className="mb-1 text-sm font-semibold">
+                      {dayData.day}
+                    </div>
+                    {dayData.items.map((item, itemIndex) => (
+                      <div
+                        key={itemIndex}
+                        className={`mb-1 rounded p-1 text-xs ${
+                          item.severity === "high"
+                            ? "border-red-300 bg-red-100 dark:bg-red-900/20"
+                            : item.severity === "medium"
+                              ? "border-yellow-300 bg-yellow-100 dark:bg-yellow-900/20"
+                              : "border-green-300 bg-green-100 dark:bg-green-900/20"
+                        }`}
+                      >
+                        {item.id} {item.task}
+                      </div>
+                    ))}
+                  </div>
+                ))
+              )}
             </div>
           </CardContent>
         </Card>
@@ -317,27 +340,92 @@ export default function MaintenancePage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {maintenanceData.map((item) => (
-                      <TableRow key={item.id}>
-                        <TableCell className="font-medium">{item.id}</TableCell>
-                        <TableCell>{item.type}</TableCell>
-                        <TableCell>{item.maintenance}</TableCell>
-                        <TableCell>{item.technician}</TableCell>
-                        <TableCell>{item.started}</TableCell>
-                        <TableCell>
-                          <Badge variant={getSeverityColor(item.severity)}>
-                            {item.severity}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Button size="sm" variant="outline">
-                            Update
-                          </Button>
+                    {recordsLoading ? (
+                      <TableRow>
+                        <TableCell
+                          colSpan={7}
+                          className="text-muted-foreground text-center text-sm"
+                        >
+                          Loading records…
                         </TableCell>
                       </TableRow>
-                    ))}
+                    ) : recordsError ? (
+                      <TableRow>
+                        <TableCell
+                          colSpan={7}
+                          className="text-center text-sm text-red-500"
+                        >
+                          {String(
+                            recordsErr?.message ?? "Failed to load records",
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ) : pagedRecords.length === 0 ? (
+                      <TableRow>
+                        <TableCell
+                          colSpan={7}
+                          className="text-muted-foreground text-center text-sm"
+                        >
+                          No active maintenance.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      pagedRecords.map((r) => (
+                        <TableRow key={r.id}>
+                          <TableCell className="font-medium">
+                            {r.asset ? `Asset-${r.asset.id}` : r.assetId}
+                          </TableCell>
+                          <TableCell>{r.asset?.assetType ?? "—"}</TableCell>
+                          <TableCell>{r.problemDescription}</TableCell>
+                          <TableCell>{r.technicianId}</TableCell>
+                          <TableCell>
+                            {new Date(r.issueDate).toLocaleDateString()}
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={getSeverityColor(
+                                r.severity as unknown as string,
+                              )}
+                            >
+                              {r.severity ?? "—"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Button size="sm" variant="outline">
+                              Update
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
                   </TableBody>
                 </Table>
+                {/* Pagination */}
+                <div className="mt-4 flex items-center justify-between">
+                  <div className="text-muted-foreground text-sm">
+                    Page {page} of {totalPages}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setPage((p) => Math.max(1, p - 1))}
+                      disabled={page === 1}
+                    >
+                      Previous
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        setPage((p) => Math.min(totalPages, p + 1))
+                      }
+                      disabled={page === totalPages}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -375,8 +463,7 @@ export default function MaintenancePage() {
               </CardContent>
             </Card>
 
-            {/* Maintenance Alerts */}
-            {/* TODO use API to fetch alerts*/}
+            {/* Maintenance Alerts computed from plans and spare parts */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -385,32 +472,66 @@ export default function MaintenancePage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-2 text-sm">
-                  <div className="flex items-start gap-2">
-                    <Badge variant="destructive" className="mt-0.5">
-                      Critical
-                    </Badge>
-                    <span>TR-067 overdue by 15 days</span>
+                {plansLoading || partsLoading ? (
+                  <div className="text-muted-foreground text-sm">
+                    Loading alerts…
                   </div>
-                  <div className="flex items-start gap-2">
-                    <Badge variant="default" className="mt-0.5">
-                      Warning
-                    </Badge>
-                    <span>6 items due this week</span>
+                ) : plansError || partsError ? (
+                  <div className="text-sm text-red-500">
+                    Failed to load alerts
                   </div>
-                  <div className="flex items-start gap-2">
-                    <Badge variant="secondary" className="mt-0.5">
-                      Info
-                    </Badge>
-                    <span>Parts order arriving Friday</span>
+                ) : (
+                  <div className="space-y-2 text-sm">
+                    {(() => {
+                      const today = new Date();
+                      const in7 = new Date();
+                      in7.setDate(today.getDate() + 7);
+                      const overdue = (plans ?? []).filter(
+                        (p) =>
+                          p.nextDueDate &&
+                          new Date(p.nextDueDate as unknown as string) < today,
+                      );
+                      const dueThisWeek = (plans ?? []).filter((p) => {
+                        if (!p.nextDueDate) return false;
+                        const d = new Date(p.nextDueDate as unknown as string);
+                        return d >= today && d <= in7;
+                      });
+                      const lowStock = (spareParts ?? []).filter(
+                        (sp) =>
+                          (sp.reorderThreshold ?? 0) > 0 &&
+                          (sp.quantityOnHand ?? 0) <=
+                            (sp.reorderThreshold ?? 0),
+                      );
+                      return (
+                        <>
+                          <div className="flex items-start gap-2">
+                            <Badge variant="destructive" className="mt-0.5">
+                              Critical
+                            </Badge>
+                            <span>{overdue.length} plan(s) overdue</span>
+                          </div>
+                          <div className="flex items-start gap-2">
+                            <Badge variant="default" className="mt-0.5">
+                              Warning
+                            </Badge>
+                            <span>
+                              {dueThisWeek.length} item(s) due in next 7 days
+                            </span>
+                          </div>
+                          <div className="flex items-start gap-2">
+                            <Badge variant="secondary" className="mt-0.5">
+                              Info
+                            </Badge>
+                            <span>
+                              {lowStock.length} spare part(s) at or below
+                              reorder threshold
+                            </span>
+                          </div>
+                        </>
+                      );
+                    })()}
                   </div>
-                  <div className="flex items-start gap-2">
-                    <Badge variant="secondary" className="mt-0.5">
-                      Reminder
-                    </Badge>
-                    <span>Monthly safety meeting Tuesday</span>
-                  </div>
-                </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -423,17 +544,27 @@ export default function MaintenancePage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-6">
-              {timelineEvents.map((event, index) => (
-                <div key={index} className="border-primary border-l-4 pl-4">
-                  <div className="text-muted-foreground mb-1 text-sm font-semibold">
-                    {event.date}
-                  </div>
-                  <p className="mb-1 font-medium">{event.title}</p>
-                  <p className="text-muted-foreground text-sm italic">
-                    {event.status}
-                  </p>
+              {recordsLoading ? (
+                <div className="text-muted-foreground py-6 text-center text-sm">
+                  Loading history…
                 </div>
-              ))}
+              ) : recordsError ? (
+                <div className="py-6 text-center text-sm text-red-500">
+                  {String(recordsErr?.message ?? "Failed to load history")}
+                </div>
+              ) : (
+                timelineEvents.map((event, index) => (
+                  <div key={index} className="border-primary border-l-4 pl-4">
+                    <div className="text-muted-foreground mb-1 text-sm font-semibold">
+                      {event.date}
+                    </div>
+                    <p className="mb-1 font-medium">{event.title}</p>
+                    <p className="text-muted-foreground text-sm italic">
+                      {event.status}
+                    </p>
+                  </div>
+                ))
+              )}
             </div>
           </CardContent>
         </Card>
