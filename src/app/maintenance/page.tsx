@@ -48,6 +48,55 @@ export default function MaintenancePage() {
     isError: partsError,
   } = api.spareParts.getall.useQuery();
 
+  // Assets for selection in form (nice UX) — optional
+  const {
+    data: assets,
+    isLoading: assetsLoading,
+    isError: assetsError,
+  } = api.asset.getAll.useQuery();
+
+  const utils = api.useUtils();
+
+  // Create Plan mutation
+  const createPlan = api.maintenancePlan.create.useMutation({
+    onSuccess: async () => {
+      // refresh plans and dependent UIs
+      await utils.maintenancePlan.getAll.invalidate();
+      // reset form state
+      setForm({
+        assetId: "",
+        maintenanceType: "",
+        scheduledDate: "",
+        severity: "",
+        technician: "",
+        estimatedHours: "",
+        description: "",
+      });
+      setSubmitMsg({ type: "success", text: "Maintenance plan scheduled." });
+    },
+    onError: (err) => {
+      setSubmitMsg({
+        type: "error",
+        text: err.message ?? "Failed to create plan",
+      });
+    },
+  });
+
+  // Local form state (controlled inputs)
+  const [form, setForm] = useState({
+    assetId: "",
+    maintenanceType: "",
+    scheduledDate: "",
+    severity: "",
+    technician: "",
+    estimatedHours: "",
+    description: "",
+  });
+  const [submitMsg, setSubmitMsg] = useState<null | {
+    type: "success" | "error";
+    text: string;
+  }>(null);
+
   // Local pagination for active maintenance table
   const [page, setPage] = useState(1);
   const pageSize = 10;
@@ -71,21 +120,14 @@ export default function MaintenancePage() {
     severity: string | null | undefined,
   ): BadgeVariant => {
     if (!severity) return "default";
-    switch (severity.toLowerCase()) {
-      case "critical":
-        return "destructive";
-      case "high":
-        return "destructive";
-      case "medium":
-        return "default";
-      case "low":
-        return "secondary";
-      default:
-        return "default";
-    }
+    const s = severity.toLowerCase();
+    if (s === "critical" || s === "high") return "destructive";
+    if (s === "medium") return "default";
+    if (s === "low") return "secondary";
+    return "default";
   };
 
-  // Calendar: bucket maintenance plans by nextDueDate within the current month
+  // Calendar: bucket maintenance plans and records by date within the current month
   const calendarDays = useMemo(() => {
     const today = new Date();
     const year = today.getFullYear();
@@ -100,6 +142,7 @@ export default function MaintenancePage() {
       }>,
     }));
 
+    // Plans due this month
     (plans ?? []).forEach((p) => {
       if (!p.nextDueDate) return;
       const due = new Date(p.nextDueDate as unknown as string);
@@ -110,8 +153,38 @@ export default function MaintenancePage() {
         days[d - 1]?.items.push({ id, task: "Plan Due", severity });
       }
     });
+
+    // Record events: issues and completions in this month
+    (maintenanceRecords ?? []).forEach((r) => {
+      // Issue date
+      const issue = new Date(r.issueDate as unknown as string);
+      if (issue.getFullYear() === year && issue.getMonth() === month) {
+        const d = issue.getDate();
+        const sev = (r.severity ?? "Medium") as unknown as
+          | "Low"
+          | "Medium"
+          | "High";
+        const map: Record<string, "low" | "medium" | "high"> = {
+          low: "low",
+          medium: "medium",
+          high: "high",
+        };
+        const s = map[(sev as string).toLowerCase()] ?? "medium";
+        const id = r.asset ? `Asset-${r.asset.id}` : String(r.assetId);
+        days[d - 1]?.items.push({ id, task: "Issue Reported", severity: s });
+      }
+      // Completion date
+      if (r.completionDate) {
+        const comp = new Date(r.completionDate as unknown as string);
+        if (comp.getFullYear() === year && comp.getMonth() === month) {
+          const d = comp.getDate();
+          const id = r.asset ? `Asset-${r.asset.id}` : String(r.assetId);
+          days[d - 1]?.items.push({ id, task: "Completed", severity: "low" });
+        }
+      }
+    });
     return days;
-  }, [plans]);
+  }, [plans, maintenanceRecords]);
 
   const timelineEvents = useMemo(() => {
     const rows = (maintenanceRecords ?? []).slice().sort((a, b) => {
@@ -134,6 +207,96 @@ export default function MaintenancePage() {
     }));
   }, [maintenanceRecords]);
 
+  // Today’s Schedule: plans due in the next 7 days
+  const upcomingPlans = useMemo(() => {
+    const today = new Date();
+    const in7 = new Date();
+    in7.setDate(today.getDate() + 7);
+    return (plans ?? [])
+      .filter((p) => {
+        if (!p.nextDueDate) return false;
+        const d = new Date(p.nextDueDate as unknown as string);
+        return d >= today && d <= in7;
+      })
+      .sort(
+        (a, b) =>
+          new Date(a.nextDueDate as unknown as string).getTime() -
+          new Date(b.nextDueDate as unknown as string).getTime(),
+      )
+      .slice(0, 8);
+  }, [plans]);
+
+  // Performance stats based on maintenanceRecords
+  const stats = useMemo(() => {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfYear = new Date(now.getFullYear(), 0, 1);
+    const last7 = new Date();
+    last7.setDate(now.getDate() - 7);
+
+    const closed = (maintenanceRecords ?? []).filter(
+      (r) => r.status === "Closed" && r.completionDate,
+    );
+
+    const within = (from: Date, to: Date) =>
+      closed.filter((r) => {
+        const c = new Date(r.completionDate as unknown as string);
+        return c >= from && c <= to;
+      });
+
+    const durationHours = (r: (typeof closed)[number]) => {
+      const start = new Date(r.issueDate as unknown as string).getTime();
+      const end = new Date(r.completionDate as unknown as string).getTime();
+      return Math.max(0, (end - start) / (1000 * 60 * 60));
+    };
+
+    const avgHours = (arr: (typeof closed)[number][]) => {
+      if (!arr.length) return 0;
+      const total = arr.reduce((sum, r) => sum + durationHours(r), 0);
+      return total / arr.length;
+    };
+
+    const SLA_HOURS = 72; // on-time if closed within 72 hours
+    const onTimeRate = (arr: (typeof closed)[number][]) => {
+      if (!arr.length) return 0;
+      const ok = arr.filter((r) => durationHours(r) <= SLA_HOURS).length;
+      return (ok / arr.length) * 100;
+    };
+
+    const weekArr = within(last7, now);
+    const monthArr = within(startOfMonth, now);
+    const yearArr = within(startOfYear, now);
+
+    // Overdue: open or in-progress older than 7 days
+    const overdueThreshold = new Date();
+    overdueThreshold.setDate(now.getDate() - 7);
+    const overdueCount = (maintenanceRecords ?? []).filter(
+      (r) =>
+        r.status !== "Closed" &&
+        new Date(r.issueDate as unknown as string) < overdueThreshold,
+    ).length;
+
+    return {
+      completed: {
+        week: weekArr.length,
+        month: monthArr.length,
+        year: yearArr.length,
+      },
+      avgHours: {
+        week: avgHours(weekArr),
+        month: avgHours(monthArr),
+        year: avgHours(yearArr),
+      },
+      onTimeRate: {
+        week: onTimeRate(weekArr),
+        month: onTimeRate(monthArr),
+        year: onTimeRate(yearArr),
+      },
+      overdueCount,
+      slaHours: SLA_HOURS,
+    };
+  }, [maintenanceRecords]);
+
   return (
     <div className="bg-background min-h-screen">
       <div className="container mx-auto space-y-6 p-6">
@@ -154,27 +317,92 @@ export default function MaintenancePage() {
             <CardTitle>Schedule New Maintenance</CardTitle>
           </CardHeader>
           <CardContent>
-            {/* TODO: wire to mutation api.maintenancePlan.create with proper fields */}
-            <form className="space-y-6">
+            <form
+              className="space-y-6"
+              onSubmit={(e) => {
+                e.preventDefault();
+                setSubmitMsg(null);
+                const assetIdNum = Number(form.assetId);
+                if (!assetIdNum || Number.isNaN(assetIdNum)) {
+                  setSubmitMsg({
+                    type: "error",
+                    text: "Please select a valid Asset",
+                  });
+                  return;
+                }
+                if (!form.scheduledDate) {
+                  setSubmitMsg({
+                    type: "error",
+                    text: "Please choose a scheduled date",
+                  });
+                  return;
+                }
+                const planDescription = [form.maintenanceType, form.description]
+                  .filter(Boolean)
+                  .join(" — ");
+                createPlan.mutate({
+                  assetId: assetIdNum,
+                  planDescription: planDescription || "Scheduled maintenance",
+                  // optional fields
+                  nextDueDate: new Date(form.scheduledDate),
+                  // frequencyDays / frequencyKm not collected in this simple form
+                  createdBy: "ui",
+                  updatedBy: "ui",
+                } as any);
+              }}
+            >
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="item-id">Vehicle/Weapon ID *</Label>
-                  <Input id="item-id" placeholder="e.g., POL-001, W-4523" />
+                  <Label htmlFor="item-id">Vehicle/Weapon *</Label>
+                  <Select
+                    value={form.assetId}
+                    onValueChange={(v) =>
+                      setForm((f) => ({ ...f, assetId: v }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue
+                        placeholder={
+                          assetsLoading
+                            ? "Loading assets…"
+                            : assetsError
+                              ? "Failed to load assets"
+                              : "Select Asset"
+                        }
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(assets ?? []).map((a) => (
+                        <SelectItem key={a.id} value={String(a.id)}>
+                          {`Asset-${a.id}`} {a.model ? `— ${a.model}` : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="maintenance-type">Maintenance Type *</Label>
-                  <Select>
+                  <Select
+                    value={form.maintenanceType}
+                    onValueChange={(v) =>
+                      setForm((f) => ({ ...f, maintenanceType: v }))
+                    }
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Select Type" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="routine">Routine Service</SelectItem>
-                      <SelectItem value="inspection">
+                      <SelectItem value="Routine Service">
+                        Routine Service
+                      </SelectItem>
+                      <SelectItem value="Safety Inspection">
                         Safety Inspection
                       </SelectItem>
-                      <SelectItem value="repair">Repair Work</SelectItem>
-                      <SelectItem value="overhaul">Major Overhaul</SelectItem>
-                      <SelectItem value="cleaning">
+                      <SelectItem value="Repair Work">Repair Work</SelectItem>
+                      <SelectItem value="Major Overhaul">
+                        Major Overhaul
+                      </SelectItem>
+                      <SelectItem value="Cleaning & Lubrication">
                         Cleaning & Lubrication
                       </SelectItem>
                     </SelectContent>
@@ -185,11 +413,23 @@ export default function MaintenancePage() {
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="scheduled-date">Scheduled Date *</Label>
-                  <Input id="scheduled-date" type="date" />
+                  <Input
+                    id="scheduled-date"
+                    type="date"
+                    value={form.scheduledDate}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, scheduledDate: e.target.value }))
+                    }
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="severity">Severity Level</Label>
-                  <Select>
+                  <Select
+                    value={form.severity}
+                    onValueChange={(v) =>
+                      setForm((f) => ({ ...f, severity: v }))
+                    }
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Medium" />
                     </SelectTrigger>
@@ -197,7 +437,6 @@ export default function MaintenancePage() {
                       <SelectItem value="low">Low</SelectItem>
                       <SelectItem value="medium">Medium</SelectItem>
                       <SelectItem value="high">High</SelectItem>
-                      <SelectItem value="urgent">Urgent</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -206,7 +445,12 @@ export default function MaintenancePage() {
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="technician">Assigned Technician</Label>
-                  <Select>
+                  <Select
+                    value={form.technician}
+                    onValueChange={(v) =>
+                      setForm((f) => ({ ...f, technician: v }))
+                    }
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Auto-assign" />
                     </SelectTrigger>
@@ -233,6 +477,10 @@ export default function MaintenancePage() {
                     type="number"
                     placeholder="2.5"
                     step="0.5"
+                    value={form.estimatedHours}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, estimatedHours: e.target.value }))
+                    }
                   />
                 </div>
               </div>
@@ -244,15 +492,49 @@ export default function MaintenancePage() {
                 <Textarea
                   id="maintenance-notes"
                   placeholder="Describe the maintenance work required..."
+                  value={form.description}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, description: e.target.value }))
+                  }
                 />
               </div>
 
               <div className="flex gap-2">
-                <Button type="submit">Schedule Maintenance</Button>
-                <Button type="reset" variant="outline">
+                <Button type="submit" disabled={createPlan.isPending}>
+                  {createPlan.isPending
+                    ? "Scheduling…"
+                    : "Schedule Maintenance"}
+                </Button>
+                <Button
+                  type="reset"
+                  variant="outline"
+                  onClick={() => {
+                    setForm({
+                      assetId: "",
+                      maintenanceType: "",
+                      scheduledDate: "",
+                      severity: "",
+                      technician: "",
+                      estimatedHours: "",
+                      description: "",
+                    });
+                    setSubmitMsg(null);
+                  }}
+                >
                   Clear Form
                 </Button>
               </div>
+              {submitMsg ? (
+                <div
+                  className={
+                    submitMsg.type === "success"
+                      ? "mt-2 text-sm text-green-600"
+                      : "mt-2 text-sm text-red-600"
+                  }
+                >
+                  {submitMsg.text}
+                </div>
+              ) : null}
             </form>
           </CardContent>
         </Card>
@@ -438,28 +720,38 @@ export default function MaintenancePage() {
                 <CardTitle>Today&apos;s Schedule</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <ClockIcon className="h-4 w-4" />
-                    <span className="font-semibold">09:00</span>
-                    <span>TR-045 Brake Repair (John S.)</span>
+                {plansLoading ? (
+                  <div className="text-muted-foreground text-sm">
+                    Loading schedule…
                   </div>
-                  <div className="flex items-center gap-2">
-                    <ClockIcon className="h-4 w-4" />
-                    <span className="font-semibold">11:30</span>
-                    <span>W-1234 Cleaning (Sarah J.)</span>
+                ) : plansError ? (
+                  <div className="text-sm text-red-500">
+                    {String(plansErr?.message ?? "Failed to load schedule")}
                   </div>
-                  <div className="flex items-center gap-2">
-                    <ClockIcon className="h-4 w-4" />
-                    <span className="font-semibold">14:00</span>
-                    <span>POL-089 Oil Change (Mike D.)</span>
+                ) : upcomingPlans.length === 0 ? (
+                  <div className="text-muted-foreground text-sm">
+                    No items due in the next 7 days.
                   </div>
-                  <div className="flex items-center gap-2">
-                    <ClockIcon className="h-4 w-4" />
-                    <span className="font-semibold">16:00</span>
-                    <span>APC-012 Inspection (John S.)</span>
+                ) : (
+                  <div className="space-y-3">
+                    {upcomingPlans.map((p, i) => {
+                      const d = new Date(p.nextDueDate as unknown as string);
+                      const time = d.toLocaleTimeString(undefined, {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      });
+                      return (
+                        <div key={i} className="flex items-center gap-2">
+                          <ClockIcon className="h-4 w-4" />
+                          <span className="font-semibold">{time}</span>
+                          <span>
+                            {`Asset-${p.assetId}`} {p.planDescription}
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
-                </div>
+                )}
               </CardContent>
             </Card>
 
@@ -570,7 +862,6 @@ export default function MaintenancePage() {
         </Card>
 
         {/* Performance Statistics */}
-        {/** TODO use API to fetch / tabulate / analyze statistics */}
         <Card>
           <CardHeader>
             <CardTitle>Maintenance Performance Statistics</CardTitle>
@@ -591,34 +882,92 @@ export default function MaintenancePage() {
                   <TableCell className="font-medium">
                     Completed Maintenance
                   </TableCell>
-                  <TableCell>28</TableCell>
-                  <TableCell>124</TableCell>
-                  <TableCell>1,456</TableCell>
-                  <TableCell>1,500</TableCell>
+                  <TableCell>
+                    {recordsLoading
+                      ? "…"
+                      : recordsError
+                        ? "—"
+                        : stats.completed.week}
+                  </TableCell>
+                  <TableCell>
+                    {recordsLoading
+                      ? "…"
+                      : recordsError
+                        ? "—"
+                        : stats.completed.month}
+                  </TableCell>
+                  <TableCell>
+                    {recordsLoading
+                      ? "…"
+                      : recordsError
+                        ? "—"
+                        : stats.completed.year}
+                  </TableCell>
+                  <TableCell>—</TableCell>
                 </TableRow>
                 <TableRow>
                   <TableCell className="font-medium">
                     Average Completion Time
                   </TableCell>
-                  <TableCell>3.2 hours</TableCell>
-                  <TableCell>3.8 hours</TableCell>
-                  <TableCell>4.1 hours</TableCell>
-                  <TableCell>4.0 hours</TableCell>
+                  <TableCell>
+                    {recordsLoading
+                      ? "…"
+                      : recordsError
+                        ? "—"
+                        : `${stats.avgHours.week.toFixed(1)} hours`}
+                  </TableCell>
+                  <TableCell>
+                    {recordsLoading
+                      ? "…"
+                      : recordsError
+                        ? "—"
+                        : `${stats.avgHours.month.toFixed(1)} hours`}
+                  </TableCell>
+                  <TableCell>
+                    {recordsLoading
+                      ? "…"
+                      : recordsError
+                        ? "—"
+                        : `${stats.avgHours.year.toFixed(1)} hours`}
+                  </TableCell>
+                  <TableCell>{`${stats.slaHours}h SLA`}</TableCell>
                 </TableRow>
                 <TableRow>
                   <TableCell className="font-medium">
                     On-Time Completion Rate
                   </TableCell>
-                  <TableCell>89%</TableCell>
-                  <TableCell>92%</TableCell>
-                  <TableCell>87%</TableCell>
+                  <TableCell>
+                    {recordsLoading
+                      ? "…"
+                      : recordsError
+                        ? "—"
+                        : `${stats.onTimeRate.week.toFixed(0)}%`}
+                  </TableCell>
+                  <TableCell>
+                    {recordsLoading
+                      ? "…"
+                      : recordsError
+                        ? "—"
+                        : `${stats.onTimeRate.month.toFixed(0)}%`}
+                  </TableCell>
+                  <TableCell>
+                    {recordsLoading
+                      ? "…"
+                      : recordsError
+                        ? "—"
+                        : `${stats.onTimeRate.year.toFixed(0)}%`}
+                  </TableCell>
                   <TableCell>90%</TableCell>
                 </TableRow>
                 <TableRow>
                   <TableCell className="font-medium">Overdue Items</TableCell>
-                  <TableCell>8</TableCell>
-                  <TableCell>32</TableCell>
-                  <TableCell>124</TableCell>
+                  <TableCell colSpan={3}>
+                    {recordsLoading
+                      ? "…"
+                      : recordsError
+                        ? "—"
+                        : stats.overdueCount}
+                  </TableCell>
                   <TableCell>&lt; 50</TableCell>
                 </TableRow>
               </TableBody>
