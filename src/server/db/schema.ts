@@ -4,10 +4,7 @@
 import { relations, sql } from "drizzle-orm";
 import {
   check,
-  date,
-  doublePrecision,
   index,
-  numeric,
   pgEnum,
   pgTableCreator,
   primaryKey,
@@ -61,7 +58,7 @@ export const assets = createTable(
     lastServiceAt: t.timestamp({ withTimezone: true }),
     commissionedAt: t.timestamp({ withTimezone: true }),
     decommissionedAt: t.timestamp({ withTimezone: true }),
-    riskScore: doublePrecision(),
+    riskScore: t.doublePrecision(),
     createdAt: t.timestamp({ withTimezone: true }).$defaultFn(() => new Date()),
     updatedAt: t
       .timestamp({ withTimezone: true })
@@ -122,7 +119,7 @@ export const spareParts = createTable(
     partName: t.varchar({ length: 255 }).notNull(),
     partNumber: t.varchar({ length: 100 }),
     unit: t.varchar({ length: 20 }), // pcs, liters, etc.
-    unitCost: numeric({ precision: 12, scale: 2 }),
+    unitCost: t.numeric({ precision: 12, scale: 2 }),
     reorderThreshold: t.integer().default(0),
     quantityOnHand: t.integer().notNull().default(0),
     createdAt: t.timestamp({ withTimezone: true }).$defaultFn(() => new Date()),
@@ -191,7 +188,12 @@ export const maintenancePlans = createTable(
     planDescription: t.text().notNull(),
     frequencyKm: t.integer(),
     frequencyDays: t.integer(),
-    nextDueDate: date(),
+    // default nextDueDate to 30 days from now
+    nextDueDate: t.timestamp({ withTimezone: true }).$defaultFn(() => {
+      const date = new Date();
+      date.setDate(date.getDate() + 30);
+      return date;
+    }),
     lastMaintenanceKm: t.integer(),
     createdAt: t.timestamp({ withTimezone: true }).$defaultFn(() => new Date()),
     updatedAt: t
