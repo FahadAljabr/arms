@@ -31,7 +31,7 @@ export default function MaintenancePage() {
       technician: "John Smith",
       started: "2025-09-23",
       progress: "75% Complete",
-      priority: "HIGH",
+      severity: "HIGH",
     },
     {
       id: "W-4523",
@@ -40,7 +40,7 @@ export default function MaintenancePage() {
       technician: "Sarah Johnson",
       started: "2025-09-25",
       progress: "25% Complete",
-      priority: "URGENT",
+      severity: "URGENT",
     },
     {
       id: "APC-012",
@@ -49,7 +49,7 @@ export default function MaintenancePage() {
       technician: "Mike Davis",
       started: "2025-09-24",
       progress: "50% Complete",
-      priority: "MEDIUM",
+      severity: "MEDIUM",
     },
   ];
 
@@ -57,26 +57,29 @@ export default function MaintenancePage() {
     { day: 23, items: [] },
     {
       day: 24,
-      items: [{ id: "POL-001", task: "Service", priority: "medium" }],
+      items: [{ id: "POL-001", task: "Service", severity: "medium" }],
     },
     {
       day: 25,
       items: [
-        { id: "TR-045", task: "Repair", priority: "high" },
-        { id: "W-1234", task: "Clean", priority: "low" },
+        { id: "TR-045", task: "Repair", severity: "high" },
+        { id: "W-1234", task: "Clean", severity: "low" },
       ],
     },
     {
       day: 26,
-      items: [{ id: "APC-012", task: "Inspect", priority: "medium" }],
+      items: [{ id: "APC-012", task: "Inspect", severity: "medium" }],
     },
-    { day: 27, items: [{ id: "POL-033", task: "Service", priority: "low" }] },
+    { day: 27, items: [{ id: "POL-033", task: "Service", severity: "low" }] },
     { day: 28, items: [] },
     { day: 29, items: [] },
-    { day: 30, items: [{ id: "TR-067", task: "URGENT", priority: "high" }] },
+    { day: 30, items: [{ id: "TR-067", task: "URGENT", severity: "high" }] },
     { day: 1, items: [] },
-    { day: 2, items: [{ id: "W-5567", task: "Inspect", priority: "medium" }] },
-    { day: 3, items: [{ id: "POL-089", task: "Service", priority: "low" }] },
+    {
+      day: 2,
+      items: [{ id: "W-5567", task: "Inspect", severity: "medium" }],
+    },
+    { day: 3, items: [{ id: "POL-089", task: "Service", severity: "low" }] },
     { day: 4, items: [] },
     { day: 5, items: [] },
     { day: 6, items: [] },
@@ -108,11 +111,11 @@ export default function MaintenancePage() {
       status: "Engine rebuilt, performance tests successful",
     },
   ];
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority.toLowerCase()) {
+  const getSeverityColor = (severity: string) => {
+    switch (severity.toLowerCase()) {
+      case "critical":
+        return "destructive";
       case "high":
-      case "urgent":
         return "destructive";
       case "medium":
         return "default";
@@ -176,7 +179,7 @@ export default function MaintenancePage() {
                   <Input id="scheduled-date" type="date" />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="priority">Priority Level</Label>
+                  <Label htmlFor="severity">Severity Level</Label>
                   <Select>
                     <SelectTrigger>
                       <SelectValue placeholder="Medium" />
@@ -274,9 +277,9 @@ export default function MaintenancePage() {
                     <div
                       key={itemIndex}
                       className={`mb-1 rounded p-1 text-xs ${
-                        item.priority === "high"
+                        item.severity === "high"
                           ? "border-red-300 bg-red-100 dark:bg-red-900/20"
-                          : item.priority === "medium"
+                          : item.severity === "medium"
                             ? "border-yellow-300 bg-yellow-100 dark:bg-yellow-900/20"
                             : "border-green-300 bg-green-100 dark:bg-green-900/20"
                       }`}
@@ -309,8 +312,7 @@ export default function MaintenancePage() {
                       <TableHead>Maintenance</TableHead>
                       <TableHead>Technician</TableHead>
                       <TableHead>Started</TableHead>
-                      <TableHead>Progress</TableHead>
-                      <TableHead>Priority</TableHead>
+                      <TableHead>Severity</TableHead>
                       <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -322,10 +324,9 @@ export default function MaintenancePage() {
                         <TableCell>{item.maintenance}</TableCell>
                         <TableCell>{item.technician}</TableCell>
                         <TableCell>{item.started}</TableCell>
-                        <TableCell>{item.progress}</TableCell>
                         <TableCell>
-                          <Badge variant={getPriorityColor(item.priority)}>
-                            {item.priority}
+                          <Badge variant={getSeverityColor(item.severity)}>
+                            {item.severity}
                           </Badge>
                         </TableCell>
                         <TableCell>
@@ -374,55 +375,8 @@ export default function MaintenancePage() {
               </CardContent>
             </Card>
 
-            {/* Technician Status */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <UserIcon className="h-5 w-5" />
-                  Technician Status
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <div className="flex items-center justify-between">
-                    <span className="font-semibold">John Smith</span>
-                    <Badge variant="destructive">BUSY</Badge>
-                  </div>
-                  <p className="text-muted-foreground text-sm">
-                    Currently: TR-045 repair
-                  </p>
-                </div>
-                <div>
-                  <div className="flex items-center justify-between">
-                    <span className="font-semibold">Sarah Johnson</span>
-                    <Badge variant="default">AVAILABLE</Badge>
-                  </div>
-                  <p className="text-muted-foreground text-sm">
-                    Next: W-1234 at 11:30
-                  </p>
-                </div>
-                <div>
-                  <div className="flex items-center justify-between">
-                    <span className="font-semibold">Mike Davis</span>
-                    <Badge variant="default">AVAILABLE</Badge>
-                  </div>
-                  <p className="text-muted-foreground text-sm">
-                    Next: POL-089 at 14:00
-                  </p>
-                </div>
-                <div>
-                  <div className="flex items-center justify-between">
-                    <span className="font-semibold">Lisa Brown</span>
-                    <Badge variant="secondary">OFF DUTY</Badge>
-                  </div>
-                  <p className="text-muted-foreground text-sm">
-                    Returns: Tomorrow 08:00
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
             {/* Maintenance Alerts */}
+            {/* TODO use API to fetch alerts*/}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -485,6 +439,7 @@ export default function MaintenancePage() {
         </Card>
 
         {/* Performance Statistics */}
+        {/** TODO use API to fetch / tabulate / analyze statistics */}
         <Card>
           <CardHeader>
             <CardTitle>Maintenance Performance Statistics</CardTitle>

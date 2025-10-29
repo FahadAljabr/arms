@@ -15,9 +15,9 @@ import {
 export const appRouter = createTRPCRouter({
   post: postRouter,
   asset: assetRouter,
-  maintenancePlanRouter: maintenancePlanRouter,
-  maintenenceRecordRouter: maintenenceRecordRouter,
-  sparePartsRouter: sparePartsRouter,
+  maintenancePlan: maintenancePlanRouter,
+  maintenenceRecord: maintenenceRecordRouter,
+  spareParts: sparePartsRouter,
 });
 
 // export type definition of API

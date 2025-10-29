@@ -130,6 +130,25 @@ export const maintenenceRecordRouter = createTRPCRouter({
         .returning();
       return deleted;
     }),
+  // mark a maintenance record as Closed set Completion Date (Technicians only)
+  markAsClosed: protectedProcedure
+    .input(z.object({ id: z.number().int().positive() }))
+    .mutation(async ({ ctx, input }) => {
+      if (!ctx.user || !ctx.roles?.includes("technician")) {
+        throw new Error(
+          "Forbidden: only technicians can mark maintenance records as Closed",
+        );
+      }
+      const [updated] = await ctx.db
+        .update(maintenanceRecords)
+        .set({
+          status: "Closed",
+          completionDate: new Date(),
+        })
+        .where(eq(maintenanceRecords.id, input.id))
+        .returning();
+      return updated;
+    }),
 });
 
 export const maintenancePlanRouter = createTRPCRouter({
