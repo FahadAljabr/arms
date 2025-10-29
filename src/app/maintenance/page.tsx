@@ -154,7 +154,7 @@ export default function MaintenancePage() {
             <CardTitle>Schedule New Maintenance</CardTitle>
           </CardHeader>
           <CardContent>
-            {/* TODO: wire to mutation api.maintenenceRecord.create with proper fields */}
+            {/* TODO: wire to mutation api.maintenancePlan.create with proper fields */}
             <form className="space-y-6">
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div className="space-y-2">
