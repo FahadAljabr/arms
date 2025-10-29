@@ -1,7 +1,6 @@
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import { assets, insertAssetSchema } from "~/server/db/schema";
-import { hasRole } from "~/server/auth/roles";
 import { eq } from "drizzle-orm";
 
 export const assetRouter = createTRPCRouter({
@@ -45,7 +44,7 @@ export const assetRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      if (!ctx.user || !hasRole(ctx.user, "technician")) {
+      if (!ctx.user || !ctx.roles?.includes("technician")) {
         throw new Error("Forbidden: only technicians can create assets");
       }
 
@@ -58,7 +57,7 @@ export const assetRouter = createTRPCRouter({
       insertAssetSchema.partial().extend({ id: z.number().int().positive() }),
     )
     .mutation(async ({ ctx, input }) => {
-      if (!ctx.user || !hasRole(ctx.user, "technician")) {
+      if (!ctx.user || !ctx.roles?.includes("technician")) {
         throw new Error("Forbidden: only technicians can update assets");
       }
 
@@ -74,7 +73,7 @@ export const assetRouter = createTRPCRouter({
   delete: protectedProcedure
     .input(z.object({ id: z.number().int().positive() }))
     .mutation(async ({ ctx, input }) => {
-      if (!ctx.user || !hasRole(ctx.user, "technician")) {
+      if (!ctx.user || !ctx.roles?.includes("technician")) {
         throw new Error("Forbidden: only technicians can delete assets");
       }
 

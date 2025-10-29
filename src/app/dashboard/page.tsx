@@ -8,7 +8,6 @@ import {
 import { MaintenanceActivitiesTable } from "./_components/maintenance-activities-table";
 import { MaintenanceAlerts } from "./_components/maintenance-alerts";
 import { withAuth } from "@workos-inc/authkit-nextjs";
-import { hasRole } from "~/server/auth/roles";
 import {
   QuickNavigation,
   SectorBreakdown,
@@ -17,8 +16,8 @@ import {
 } from "./_components/sidebar-components";
 
 export default async function DashboardPage() {
-  const { user } = await withAuth({ ensureSignedIn: true });
-  const isTechnician = hasRole(user, "technician");
+  const { user, roles } = await withAuth({ ensureSignedIn: true });
+  const isTechnician = roles?.includes("technician") ?? false;
   return (
     <div className="container mx-auto px-4 py-6">
       {/* Header */}

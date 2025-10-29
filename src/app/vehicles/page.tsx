@@ -1,7 +1,6 @@
 import React from "react";
 import { withAuth } from "@workos-inc/authkit-nextjs";
 import { db } from "~/server/db";
-import { hasRole } from "~/server/auth/roles";
 import { AssetsTable } from "../_components/assets-table";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import {
@@ -28,8 +27,8 @@ import { Search, Car, Plus, Filter, Edit, Eye, Wrench } from "lucide-react";
 
 export default async function VehiclesPage() {
   // Determine if the current user is a Technician (server-side)
-  const { user } = await withAuth({ ensureSignedIn: true });
-  const isTechnician = user ? hasRole(user, "technician") : false;
+  const { user, roles } = await withAuth({ ensureSignedIn: true });
+  const isTechnician = roles?.includes("technician") ?? false;
   const vehicles = [
     {
       id: "POL-001",

@@ -1,6 +1,5 @@
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import { z } from "zod";
-import { hasRole } from "~/server/auth/roles";
 import {
   maintenanceRecords,
   insertMaintenanceRecordSchema,
@@ -48,7 +47,7 @@ export const maintenenceRecordRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      if (!ctx.user || !hasRole(ctx.user, "technician")) {
+      if (!ctx.user || !ctx.roles?.includes("technician")) {
         throw new Error(
           "Forbidden: only technicians can create maintenance records",
         );
@@ -68,7 +67,7 @@ export const maintenenceRecordRouter = createTRPCRouter({
         .extend({ id: z.number().int().positive() }),
     )
     .mutation(async ({ ctx, input }) => {
-      if (!ctx.user || !hasRole(ctx.user, "technician")) {
+      if (!ctx.user || !ctx.roles?.includes("technician")) {
         throw new Error(
           "Forbidden: only technicians can update maintenance records",
         );
@@ -91,7 +90,7 @@ export const maintenenceRecordRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      if (!ctx.user || !hasRole(ctx.user, "technician")) {
+      if (!ctx.user || !ctx.roles?.includes("technician")) {
         throw new Error(
           "Forbidden: only technicians can add parts to maintenance records",
         );
@@ -120,7 +119,7 @@ export const maintenenceRecordRouter = createTRPCRouter({
   delete: protectedProcedure
     .input(z.object({ id: z.number().int().positive() }))
     .mutation(async ({ ctx, input }) => {
-      if (!ctx.user || !hasRole(ctx.user, "technician")) {
+      if (!ctx.user || !ctx.roles?.includes("technician")) {
         throw new Error(
           "Forbidden: only technicians can delete maintenance records",
         );
@@ -144,7 +143,7 @@ export const maintenancePlanRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      if (!ctx.user || !hasRole(ctx.user, "technician")) {
+      if (!ctx.user || !ctx.roles?.includes("technician")) {
         throw new Error(
           "Forbidden: only technicians can create maintenance plans",
         );
@@ -182,7 +181,7 @@ export const maintenancePlanRouter = createTRPCRouter({
         .extend({ id: z.number().int().positive() }),
     )
     .mutation(async ({ ctx, input }) => {
-      if (!ctx.user || !hasRole(ctx.user, "technician")) {
+      if (!ctx.user || !ctx.roles?.includes("technician")) {
         throw new Error(
           "Forbidden: only technicians can update maintenance plans",
         );
@@ -200,7 +199,7 @@ export const maintenancePlanRouter = createTRPCRouter({
   delete: protectedProcedure
     .input(z.object({ id: z.number().int().positive() }))
     .mutation(async ({ ctx, input }) => {
-      if (!ctx.user || !hasRole(ctx.user, "technician")) {
+      if (!ctx.user || !ctx.roles?.includes("technician")) {
         throw new Error(
           "Forbidden: only technicians can delete maintenance plans",
         );
@@ -245,7 +244,7 @@ export const sparePartsRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      if (!ctx.user || !hasRole(ctx.user, "technician")) {
+      if (!ctx.user || !ctx.roles?.includes("technician")) {
         throw new Error("Forbidden: only technicians can create spare parts");
       }
 
@@ -263,7 +262,7 @@ export const sparePartsRouter = createTRPCRouter({
         .extend({ id: z.number().int().positive() }),
     )
     .mutation(async ({ ctx, input }) => {
-      if (!ctx.user || !hasRole(ctx.user, "technician")) {
+      if (!ctx.user || !ctx.roles?.includes("technician")) {
         throw new Error("Forbidden: only technicians can update spare parts");
       }
 
@@ -278,7 +277,7 @@ export const sparePartsRouter = createTRPCRouter({
   delete: protectedProcedure
     .input(z.object({ id: z.number().int().positive() }))
     .mutation(async ({ ctx, input }) => {
-      if (!ctx.user || !hasRole(ctx.user, "technician")) {
+      if (!ctx.user || !ctx.roles?.includes("technician")) {
         throw new Error("Forbidden: only technicians can delete spare parts");
       }
 
