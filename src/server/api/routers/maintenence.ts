@@ -29,6 +29,10 @@ export const maintenenceRecordRouter = createTRPCRouter({
       const record = await ctx.db.query.maintenanceRecords.findFirst({
         where: (maintenanceRecords, { eq }) =>
           eq(maintenanceRecords.id, input.id),
+        with: {
+          asset: true,
+          parts: true,
+        },
       });
       return record ?? null;
     }),
