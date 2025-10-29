@@ -346,8 +346,6 @@ export default function MaintenancePage() {
                   // optional fields
                   nextDueDate: new Date(form.scheduledDate),
                   // frequencyDays / frequencyKm not collected in this simple form
-                  createdBy: "ui",
-                  updatedBy: "ui",
                 } as any);
               }}
             >
