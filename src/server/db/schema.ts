@@ -7,16 +7,11 @@ import {
   date,
   doublePrecision,
   index,
-  integer,
   numeric,
   pgEnum,
   pgTableCreator,
   primaryKey,
-  text,
-  timestamp,
   uniqueIndex,
-  varchar,
-  boolean,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 

@@ -8,6 +8,8 @@ import {
   spareParts,
   maintenancePlans,
   insertMaintenancePlanSchema,
+  insertMaintenanceRecordPartSchema,
+  maintenanceRecordParts,
 } from "~/server/db/schema";
 import { eq } from "drizzle-orm/sql/expressions/conditions";
 
@@ -27,6 +29,10 @@ export const maintenenceRecordRouter = createTRPCRouter({
       const record = await ctx.db.query.maintenanceRecords.findFirst({
         where: (maintenanceRecords, { eq }) =>
           eq(maintenanceRecords.id, input.id),
+        with: {
+          asset: true,
+          parts: true,
+        },
       });
       return record ?? null;
     }),
@@ -64,6 +70,35 @@ export const maintenenceRecordRouter = createTRPCRouter({
           "Forbidden: only technicians can update maintenance records",
         );
       }
+      const [updated] = await ctx.db
+        .update(maintenanceRecords)
+        .set(input)
+        .where(eq(maintenanceRecords.id, input.id))
+        .returning();
+      return updated;
+    }),
+  // add record parts (conjuncture table)
+  addRecordParts: protectedProcedure
+    .input(
+      insertMaintenanceRecordPartSchema.omit({
+        createdAt: true,
+        updatedAt: true,
+        deletedAt: true,
+        deletedBy: true,
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      if (!ctx.user || !hasRole(ctx.user, "technician")) {
+        throw new Error(
+          "Forbidden: only technicians can add parts to maintenance records",
+        );
+      }
+
+      const [created] = await ctx.db
+        .insert(maintenanceRecordParts)
+        .values(input)
+        .returning();
+      return created;
     }),
   getByCategory: protectedProcedure
     .input(z.object({ category: z.string().min(2).max(100) }))
@@ -111,7 +146,13 @@ export const maintenancePlanRouter = createTRPCRouter({
           "Forbidden: only technicians can create maintenance plans",
         );
       }
+      const [created] = await ctx.db
+        .insert(maintenancePlans)
+        .values(input)
+        .returning();
+      return created;
     }),
+
   // get all
   getAll: protectedProcedure.query(async ({ ctx }) => {
     const rows = await ctx.db.query.maintenancePlans.findMany({
