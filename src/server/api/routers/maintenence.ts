@@ -66,6 +66,12 @@ export const maintenenceRecordRouter = createTRPCRouter({
           "Forbidden: only technicians can update maintenance records",
         );
       }
+      const [updated] = await ctx.db
+        .update(maintenanceRecords)
+        .set(input)
+        .where(eq(maintenanceRecords.id, input.id))
+        .returning();
+      return updated;
     }),
   // add record parts (conjuncture table)
   addRecordParts: protectedProcedure
@@ -136,7 +142,13 @@ export const maintenancePlanRouter = createTRPCRouter({
           "Forbidden: only technicians can create maintenance plans",
         );
       }
+      const [created] = await ctx.db
+        .insert(maintenancePlans)
+        .values(input)
+        .returning();
+      return created;
     }),
+
   // get all
   getAll: protectedProcedure.query(async ({ ctx }) => {
     const rows = await ctx.db.query.maintenancePlans.findMany({
