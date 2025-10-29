@@ -187,7 +187,6 @@ pnpm db:push       # push changes to your dev database
 
 Note: In development, we've kept compatibility stubs so existing UI compiles while roles/users are removed from the schema:
 
-- `src/server/auth/provision.ts` is now a no-op.
 - `postRouter.getLatest` returns `null` to keep client types compiling.
 
 ## 🎨 UI/UX Features
