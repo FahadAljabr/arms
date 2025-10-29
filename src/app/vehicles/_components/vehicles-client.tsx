@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
-import { api } from "~/trpc/react";
+import { api, type RouterInputs, type RouterOutputs } from "~/trpc/react";
 import { AssetsTable } from "../../_components/assets-table";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import {
@@ -12,7 +12,6 @@ import {
   TableHeader,
   TableRow,
 } from "~/components/ui/table";
-import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
@@ -44,14 +43,18 @@ export default function VehiclesClient({
   // Fetch all assets once; this cache will be reused by the table queries
   const allQuery = api.asset.getAll.useQuery();
 
+  // Types
+  type Asset = RouterOutputs["asset"]["getAll"][number];
+  type CreateAssetInput = RouterInputs["asset"]["create"];
+
   // Derived vehicle assets only (Patrol Car, Armored Vehicle)
-  const vehicleTypes = useMemo(
-    () => ["Patrol Car", "Armored Vehicle"] as const,
+  const vehicleTypes: ReadonlyArray<Asset["assetType"]> = useMemo(
+    () => ["Patrol Car", "Armored Vehicle"],
     [],
   );
   const vehicleAssets = useMemo(() => {
     const rows = allQuery.data ?? [];
-    return rows.filter((a) => vehicleTypes.includes(a.assetType as any));
+    return rows.filter((a) => vehicleTypes.includes(a.assetType));
   }, [allQuery.data, vehicleTypes]);
 
   // Create mutation for the registration form
@@ -73,11 +76,7 @@ export default function VehiclesClient({
 
   // Registration form state (map to schema fields)
   const [form, setForm] = useState({
-    assetType: undefined as
-      | undefined
-      | "Patrol Car"
-      | "Armored Vehicle"
-      | "Other",
+    assetType: undefined as undefined | Asset["assetType"],
     sector: "",
     model: "",
     currentKm: "",
@@ -86,11 +85,11 @@ export default function VehiclesClient({
     notes: "",
   });
 
-  const submitForm: React.FormEventHandler<HTMLFormElement> = async (e) => {
+  const submitForm: React.FormEventHandler<HTMLFormElement> = (e) => {
     e.preventDefault();
     if (!form.assetType || !form.sector) return;
 
-    const payload = {
+    const payload: CreateAssetInput = {
       assetType: form.assetType,
       sector: form.sector,
       model: form.model || undefined,
@@ -102,19 +101,15 @@ export default function VehiclesClient({
         ? new Date(form.lastServiceAt)
         : undefined,
       // status left as default (Operational)
-    } as const;
+    };
 
-    try {
-      await createMutation.mutateAsync(payload as any);
-    } catch (err) {
-      // handled by error state
-    }
+    void createMutation.mutateAsync(payload);
   };
 
   // Client-side filter predicate for table
   const tableFilter = useMemo(() => {
     const kw = keyword.trim().toLowerCase();
-    return (asset: (typeof vehicleAssets)[number]) => {
+    return (asset: Asset) => {
       if (statusFilter !== "all" && asset.status !== statusFilter) return false;
       if (kw) {
         const hay =
@@ -123,7 +118,7 @@ export default function VehiclesClient({
       }
       return true;
     };
-  }, [keyword, statusFilter, vehicleAssets]);
+  }, [keyword, statusFilter]);
 
   // Maintenance alerts based on lastServiceAt recency
   const now = new Date().getTime();
@@ -144,8 +139,8 @@ export default function VehiclesClient({
   }, [vehicleAssets, now]);
 
   // Sector stats (Police, Traffic Police, Military Police)
-  const sectors = ["Police", "Traffic Police", "Military Police"] as const;
   const sectorStats = useMemo(() => {
+    const sectors = ["Police", "Traffic Police", "Military Police"] as const;
     return sectors.map((sec) => {
       const items = vehicleAssets.filter((a) => a.sector === sec);
       const total = items.length;
@@ -208,9 +203,9 @@ export default function VehiclesClient({
                 <Alert variant="destructive" className="mb-4">
                   <AlertTitle>Failed to register</AlertTitle>
                   <AlertDescription>
-                    {String(
-                      (createMutation.error as any)?.message ?? "Unknown error",
-                    )}
+                    {createMutation.error instanceof Error
+                      ? createMutation.error.message
+                      : "Unknown error"}
                   </AlertDescription>
                 </Alert>
               ) : null}
@@ -256,7 +251,7 @@ export default function VehiclesClient({
                     <Label htmlFor="vehicle-type">Vehicle Type *</Label>
                     <Select
                       value={form.assetType}
-                      onValueChange={(v: any) =>
+                      onValueChange={(v: Asset["assetType"]) =>
                         setForm((f) => ({ ...f, assetType: v }))
                       }
                     >
@@ -378,7 +373,7 @@ export default function VehiclesClient({
                   value={keyword}
                   onChange={(e) => setKeyword(e.target.value)}
                 />
-                <Button onClick={() => void 0}>
+                <Button type="button">
                   <Search className="mr-2 h-4 w-4" />
                   Search
                 </Button>
@@ -413,7 +408,9 @@ export default function VehiclesClient({
                   <Label>Status:</Label>
                   <Select
                     value={statusFilter}
-                    onValueChange={(v: any) => setStatusFilter(v)}
+                    onValueChange={(v: "all" | Asset["status"]) =>
+                      setStatusFilter(v)
+                    }
                   >
                     <SelectTrigger className="w-40">
                       <SelectValue placeholder="All Status" />
@@ -487,7 +484,7 @@ export default function VehiclesClient({
               <CardContent>
                 {allQuery.isLoading ? (
                   <div className="space-y-2">
-                    {[...Array(3)].map((_, i) => (
+                    {Array.from({ length: 3 }).map((_, i) => (
                       <div
                         key={i}
                         className="bg-muted h-4 w-full animate-pulse rounded"
@@ -526,7 +523,7 @@ export default function VehiclesClient({
               <CardContent>
                 {allQuery.isLoading ? (
                   <div className="space-y-2">
-                    {[...Array(3)].map((_, i) => (
+                    {Array.from({ length: 3 }).map((_, i) => (
                       <div
                         key={i}
                         className="bg-muted h-4 w-full animate-pulse rounded"
@@ -612,7 +609,9 @@ export default function VehiclesClient({
               <Alert variant="destructive" className="mt-4">
                 <AlertTitle>Failed to load statistics</AlertTitle>
                 <AlertDescription>
-                  {String((allQuery.error as any)?.message ?? "Unknown error")}
+                  {allQuery.error instanceof Error
+                    ? allQuery.error.message
+                    : "Unknown error"}
                 </AlertDescription>
               </Alert>
             ) : null}
