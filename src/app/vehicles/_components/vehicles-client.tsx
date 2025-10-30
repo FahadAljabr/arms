@@ -46,6 +46,8 @@ export default function VehiclesClient({
   // Types
   type Asset = RouterOutputs["asset"]["getAll"][number];
   type CreateAssetInput = RouterInputs["asset"]["create"];
+  type AssetType = Asset["assetType"];
+  type Sector = Asset["sector"];
 
   // Derived vehicle assets only (Patrol Car, Armored Vehicle)
   const vehicleTypes: ReadonlyArray<Asset["assetType"]> = useMemo(
@@ -59,11 +61,13 @@ export default function VehiclesClient({
 
   // Create mutation for the registration form
   const utils = api.useUtils();
+  const [errors, setErrors] = useState<string[]>([]);
+  const [success, setSuccess] = useState<string | null>(null);
   const createMutation = api.asset.create.useMutation({
     onSuccess: async () => {
       await utils.asset.getAll.invalidate();
       setForm({
-        assetType: undefined,
+        assetType: "",
         sector: "",
         model: "",
         currentKm: "",
@@ -71,12 +75,22 @@ export default function VehiclesClient({
         lastServiceAt: "",
         notes: "",
       });
+      setErrors([]);
+      setSuccess("Vehicle registered successfully.");
     },
   });
 
   // Registration form state (map to schema fields)
-  const [form, setForm] = useState({
-    assetType: undefined as undefined | Asset["assetType"],
+  const [form, setForm] = useState<{
+    assetType: AssetType | "";
+    sector: Sector | "";
+    model: string;
+    currentKm: string;
+    commissionedAt: string;
+    lastServiceAt: string;
+    notes: string;
+  }>({
+    assetType: "",
     sector: "",
     model: "",
     currentKm: "",
@@ -87,11 +101,23 @@ export default function VehiclesClient({
 
   const submitForm: React.FormEventHandler<HTMLFormElement> = (e) => {
     e.preventDefault();
-    if (!form.assetType || !form.sector) return;
+    setSuccess(null);
+
+    const newErrors: string[] = [];
+    if (!form.assetType) newErrors.push("Vehicle type is required.");
+    if (!form.sector) newErrors.push("Sector is required.");
+    if (form.currentKm && Number.isNaN(Number(form.currentKm)))
+      newErrors.push("Current KM must be a number.");
+
+    if (newErrors.length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+    setErrors([]);
 
     const payload: CreateAssetInput = {
-      assetType: form.assetType,
-      sector: form.sector,
+      assetType: form.assetType as AssetType,
+      sector: form.sector as Sector,
       model: form.model || undefined,
       currentKm: form.currentKm ? Number(form.currentKm) : undefined,
       commissionedAt: form.commissionedAt
@@ -111,6 +137,7 @@ export default function VehiclesClient({
     const kw = keyword.trim().toLowerCase();
     return (asset: Asset) => {
       if (statusFilter !== "all" && asset.status !== statusFilter) return false;
+      if (sectorFilter && asset.sector !== sectorFilter) return false;
       if (kw) {
         const hay =
           `${asset.id} ${asset.model ?? ""} ${asset.sector} ${asset.assetType}`.toLowerCase();
@@ -118,7 +145,7 @@ export default function VehiclesClient({
       }
       return true;
     };
-  }, [keyword, statusFilter]);
+  }, [keyword, statusFilter, sectorFilter]);
 
   // Maintenance alerts based on lastServiceAt recency
   const now = new Date().getTime();
@@ -209,6 +236,24 @@ export default function VehiclesClient({
                   </AlertDescription>
                 </Alert>
               ) : null}
+              {errors.length > 0 ? (
+                <Alert variant="destructive" className="mb-4">
+                  <AlertTitle>Cannot submit</AlertTitle>
+                  <AlertDescription>
+                    <ul className="list-disc pl-5">
+                      {errors.map((err, i) => (
+                        <li key={i}>{err}</li>
+                      ))}
+                    </ul>
+                  </AlertDescription>
+                </Alert>
+              ) : null}
+              {success ? (
+                <Alert className="mb-4">
+                  <AlertTitle>Success</AlertTitle>
+                  <AlertDescription>{success}</AlertDescription>
+                </Alert>
+              ) : null}
               <form className="space-y-6" onSubmit={submitForm}>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div className="space-y-2">
@@ -220,14 +265,15 @@ export default function VehiclesClient({
                       onChange={(e) =>
                         setForm((f) => ({ ...f, model: e.target.value }))
                       }
+                      disabled={createMutation.isPending}
                     />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="sector">Sector *</Label>
                     <Select
-                      value={form.sector || undefined}
+                      value={form.sector}
                       onValueChange={(v) =>
-                        setForm((f) => ({ ...f, sector: v }))
+                        setForm((f) => ({ ...f, sector: v as Sector }))
                       }
                     >
                       <SelectTrigger>
@@ -243,6 +289,11 @@ export default function VehiclesClient({
                         </SelectItem>
                       </SelectContent>
                     </Select>
+                    {errors.includes("Sector is required.") ? (
+                      <p className="text-destructive text-xs">
+                        Sector is required.
+                      </p>
+                    ) : null}
                   </div>
                 </div>
 
@@ -251,8 +302,8 @@ export default function VehiclesClient({
                     <Label htmlFor="vehicle-type">Vehicle Type *</Label>
                     <Select
                       value={form.assetType}
-                      onValueChange={(v: Asset["assetType"]) =>
-                        setForm((f) => ({ ...f, assetType: v }))
+                      onValueChange={(v) =>
+                        setForm((f) => ({ ...f, assetType: v as AssetType }))
                       }
                     >
                       <SelectTrigger>
@@ -266,6 +317,11 @@ export default function VehiclesClient({
                         <SelectItem value="Other">Other</SelectItem>
                       </SelectContent>
                     </Select>
+                    {errors.includes("Vehicle type is required.") ? (
+                      <p className="text-destructive text-xs">
+                        Vehicle type is required.
+                      </p>
+                    ) : null}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="currentKm">Current KM</Label>
@@ -278,7 +334,13 @@ export default function VehiclesClient({
                       onChange={(e) =>
                         setForm((f) => ({ ...f, currentKm: e.target.value }))
                       }
+                      disabled={createMutation.isPending}
                     />
+                    {errors.includes("Current KM must be a number.") ? (
+                      <p className="text-destructive text-xs">
+                        Current KM must be a number.
+                      </p>
+                    ) : null}
                   </div>
                 </div>
 
@@ -297,6 +359,7 @@ export default function VehiclesClient({
                           commissionedAt: e.target.value,
                         }))
                       }
+                      disabled={createMutation.isPending}
                     />
                   </div>
                   <div className="space-y-2">
@@ -311,6 +374,7 @@ export default function VehiclesClient({
                           lastServiceAt: e.target.value,
                         }))
                       }
+                      disabled={createMutation.isPending}
                     />
                   </div>
                 </div>
@@ -324,6 +388,7 @@ export default function VehiclesClient({
                     onChange={(e) =>
                       setForm((f) => ({ ...f, notes: e.target.value }))
                     }
+                    disabled={createMutation.isPending}
                   />
                 </div>
 
@@ -336,17 +401,19 @@ export default function VehiclesClient({
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() =>
+                    onClick={() => {
                       setForm({
-                        assetType: undefined,
+                        assetType: "",
                         sector: "",
                         model: "",
                         currentKm: "",
                         commissionedAt: "",
                         lastServiceAt: "",
                         notes: "",
-                      })
-                    }
+                      });
+                      setErrors([]);
+                      setSuccess(null);
+                    }}
                     disabled={createMutation.isPending}
                   >
                     Clear Form
