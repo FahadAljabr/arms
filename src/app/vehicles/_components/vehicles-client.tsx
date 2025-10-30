@@ -51,7 +51,7 @@ export default function VehiclesClient({
 
   // Derived vehicle assets only (Patrol Car, Armored Vehicle)
   const vehicleTypes: ReadonlyArray<Asset["assetType"]> = useMemo(
-    () => ["Patrol Car", "Armored Vehicle"],
+    () => ["Patrol Car", "Armored Vehicle", "Other"],
     [],
   );
   const vehicleAssets = useMemo(() => {
@@ -512,7 +512,7 @@ export default function VehiclesClient({
               }
               pageSize={10}
               sector={sectorFilter}
-              assetTypes={["Patrol Car", "Armored Vehicle"]}
+              assetTypes={["Patrol Car", "Armored Vehicle", "Other"]}
               filter={tableFilter}
             />
           </div>
