@@ -207,21 +207,51 @@ export default function MaintenancePage() {
   }, [plans, maintenanceRecords]);
 
   const timelineEvents = useMemo(() => {
-    const rows = recentRecords ?? [];
+    // Prefer server-combined recent feed when available
+    const combined = recentRecords ?? [];
+    if (combined.length > 0) {
+      return combined.map((item) => ({
+        date: new Date(item.date).toLocaleDateString(undefined, {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        }),
+        title: `${item.asset?.model ?? "Asset"} - ${item.title}`,
+        status:
+          item.kind === "record"
+            ? item.status === "Closed"
+              ? `Closed${item.completionDate ? ` on ${new Date(item.completionDate).toLocaleDateString()}` : ""}`
+              : item.status
+            : item.status, // e.g. "Planned"
+      }));
+    }
 
-    return rows.map((r) => ({
-      date: new Date(r.issueDate).toLocaleDateString(undefined, {
+    // Fallback: if recent feed is empty (e.g., no records), build from plans so the section isn't blank
+    const fallbackPlans = (plans ?? [])
+      .slice()
+      .sort((a, b) => {
+        const ad = new Date(
+          (a.updatedAt as any) ?? (a.nextDueDate as any) ?? 0,
+        ).getTime();
+        const bd = new Date(
+          (b.updatedAt as any) ?? (b.nextDueDate as any) ?? 0,
+        ).getTime();
+        return bd - ad;
+      })
+      .slice(0, 10);
+
+    return fallbackPlans.map((p) => ({
+      date: new Date(
+        (p.nextDueDate as any) ?? (p.updatedAt as any) ?? Date.now(),
+      ).toLocaleDateString(undefined, {
         year: "numeric",
         month: "long",
         day: "numeric",
       }),
-      title: `${r.asset?.model ?? "Asset"} - ${r.problemDescription}`,
-      status:
-        r.status === "Closed"
-          ? `Closed${r.completionDate ? ` on ${new Date(r.completionDate).toLocaleDateString()}` : ""}`
-          : r.status,
+      title: `Asset-${p.assetId} - ${p.planDescription}`,
+      status: "Planned",
     }));
-  }, [recentRecords]);
+  }, [recentRecords, plans]);
 
   // Today’s Schedule: plans due in the next 7 days
   const upcomingPlans = useMemo(() => {

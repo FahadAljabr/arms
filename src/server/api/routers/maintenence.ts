@@ -9,6 +9,7 @@ import {
   insertMaintenancePlanSchema,
   insertMaintenanceRecordPartSchema,
   maintenanceRecordParts,
+  assets,
 } from "~/server/db/schema";
 import { eq } from "drizzle-orm/sql/expressions/conditions";
 
@@ -27,15 +28,75 @@ export const maintenenceRecordRouter = createTRPCRouter({
   }),
 
   recent: protectedProcedure.query(async ({ ctx }) => {
-    const rows = await ctx.db.query.maintenanceRecords.findMany({
-      with: {
-        asset: true,
-      },
-      orderBy: (maintenanceRecords, { desc }) => [
-        desc(maintenanceRecords.updatedAt),
-      ],
-    });
-    return rows;
+    // Combine recent maintenance records and maintenance plans into a single unified feed
+    const [records, plans] = await Promise.all([
+      ctx.db.query.maintenanceRecords.findMany({
+        with: { asset: true },
+        orderBy: (tbl, { desc }) => [desc(tbl.updatedAt)],
+        // limit could be tuned; keeping generous to allow mixing
+      }),
+      ctx.db.query.maintenancePlans.findMany({
+        with: { asset: true },
+        orderBy: (tbl, { desc }) => [desc(tbl.updatedAt)],
+      }),
+    ]);
+
+    type AssetSelect = typeof assets.$inferSelect;
+    type RecentItem =
+      | {
+          kind: "record";
+          id: number;
+          date: Date; // display date
+          updatedAt: Date; // for sorting
+          asset: AssetSelect | null;
+          title: string;
+          status: string;
+          completionDate?: Date | null;
+        }
+      | {
+          kind: "plan";
+          id: number;
+          date: Date; // next due date (or updatedAt fallback)
+          updatedAt: Date; // for sorting
+          asset: AssetSelect | null;
+          title: string;
+          status: string; // "Planned"
+        };
+
+    const recordItems: RecentItem[] = records.map((r) => ({
+      kind: "record",
+      id: r.id,
+      date: r.issueDate ?? r.updatedAt ?? new Date(0),
+      updatedAt: r.updatedAt ?? r.createdAt ?? r.issueDate ?? new Date(0),
+      asset: r.asset ?? null,
+      title: r.problemDescription,
+      status: r.status,
+      completionDate: r.completionDate ?? null,
+    }));
+
+    const planItems: RecentItem[] = plans.map((p) => ({
+      kind: "plan",
+      id: p.id,
+      date:
+        (p.nextDueDate as Date | null) ??
+        p.updatedAt ??
+        p.createdAt ??
+        new Date(0),
+      updatedAt:
+        p.updatedAt ??
+        p.createdAt ??
+        (p.nextDueDate as Date | null) ??
+        new Date(0),
+      asset: (p as unknown as { asset?: AssetSelect }).asset ?? null,
+      title: p.planDescription,
+      status: "Planned",
+    }));
+
+    const combined: RecentItem[] = [...recordItems, ...planItems]
+      .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
+      .slice(0, 100);
+
+    return combined;
   }),
 
   getById: protectedProcedure
