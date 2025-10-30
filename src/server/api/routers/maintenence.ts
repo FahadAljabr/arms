@@ -25,6 +25,19 @@ export const maintenenceRecordRouter = createTRPCRouter({
     });
     return rows;
   }),
+
+  recent: protectedProcedure.query(async ({ ctx }) => {
+    const rows = await ctx.db.query.maintenanceRecords.findMany({
+      with: {
+        asset: true,
+      },
+      orderBy: (maintenanceRecords, { desc }) => [
+        desc(maintenanceRecords.updatedAt),
+      ],
+    });
+    return rows;
+  }),
+
   getById: protectedProcedure
     .input(z.object({ id: z.number().int().positive() }))
     .query(async ({ ctx, input }) => {

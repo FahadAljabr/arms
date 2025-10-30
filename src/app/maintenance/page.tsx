@@ -60,6 +60,13 @@ export default function MaintenancePage() {
     isError: assetsError,
   } = api.asset.getAll.useQuery();
 
+  const {
+    data: recentRecords,
+    isLoading: recentLoading,
+    isError: recentError,
+    error: recentErr,
+  } = api.maintenenceRecord.recent.useQuery();
+
   const utils = api.useUtils();
 
   // Technicians for assignment (from WorkOS)
@@ -200,13 +207,9 @@ export default function MaintenancePage() {
   }, [plans, maintenanceRecords]);
 
   const timelineEvents = useMemo(() => {
-    const rows = (maintenanceRecords ?? []).slice().sort((a, b) => {
-      const aTime = new Date(a.issueDate).getTime();
-      const bTime = new Date(b.issueDate).getTime();
-      return bTime - aTime;
-    });
+    const rows = recentRecords ?? [];
 
-    return rows.slice(0, 10).map((r) => ({
+    return rows.map((r) => ({
       date: new Date(r.issueDate).toLocaleDateString(undefined, {
         year: "numeric",
         month: "long",
@@ -218,7 +221,7 @@ export default function MaintenancePage() {
           ? `Closed${r.completionDate ? ` on ${new Date(r.completionDate).toLocaleDateString()}` : ""}`
           : r.status,
     }));
-  }, [maintenanceRecords]);
+  }, [recentRecords]);
 
   // Today’s Schedule: plans due in the next 7 days
   const upcomingPlans = useMemo(() => {
@@ -861,13 +864,13 @@ export default function MaintenancePage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-6">
-              {recordsLoading ? (
+              {recentLoading ? (
                 <div className="text-muted-foreground py-6 text-center text-sm">
                   Loading history…
                 </div>
-              ) : recordsError ? (
+              ) : recentError ? (
                 <div className="py-6 text-center text-sm text-red-500">
-                  {String(recordsErr?.message ?? "Failed to load history")}
+                  {String(recentErr?.message ?? "Failed to load history")}
                 </div>
               ) : (
                 timelineEvents.map((event, index) => (

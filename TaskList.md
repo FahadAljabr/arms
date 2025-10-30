@@ -1,0 +1,8 @@
+- [ ] WorkOs [Audit logs](https://workos.com/docs/audit-logs)
+- [ ] Generate Report
+- [ ] Export Data (Vehicle , Weapon , Record , Plan)
+- [ ] Checklist (update maintenence status)
+- [ ] Left and right on Calendar Maintanance
+- [ ] Validation on new Dates (not in the past)
+- [ ] Quick add Assets using qr code
+- [ ] R
