@@ -7,8 +7,12 @@ export default async function WeaponsPage() {
   const isTechnician = roles?.includes("technician") ?? false;
   const isMajorGeneral = roles?.includes("major-general") ?? false;
   const isAdmin = roles?.includes("admin") ?? false;
+  const canSetLocation = isAdmin || isMajorGeneral;
 
   return (
-    <WeaponsClient isTechnician={isTechnician || isMajorGeneral || isAdmin} />
+    <WeaponsClient
+      isTechnician={isTechnician || isMajorGeneral || isAdmin}
+      canSetLocation={canSetLocation}
+    />
   );
 }

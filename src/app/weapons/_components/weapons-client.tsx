@@ -38,8 +38,10 @@ const WEAPON_TYPES = [
 
 export default function WeaponsClient({
   isTechnician,
+  canSetLocation = false,
 }: {
   isTechnician: boolean;
+  canSetLocation?: boolean;
 }) {
   // Search & filters
   const [keyword, setKeyword] = useState("");
@@ -432,6 +434,7 @@ export default function WeaponsClient({
               sector={sectorFilter}
               assetTypes={weaponTypes as unknown as Array<Asset["assetType"]>}
               filter={tableFilter}
+              canSetLocation={canSetLocation}
             />
           </div>
 

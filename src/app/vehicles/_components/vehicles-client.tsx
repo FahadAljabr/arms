@@ -28,8 +28,10 @@ import { Search, Car, Plus, Filter, Wrench } from "lucide-react";
 
 export default function VehiclesClient({
   isTechnician,
+  canSetLocation = false,
 }: {
   isTechnician: boolean;
+  canSetLocation?: boolean;
 }) {
   // Search & filters
   const [keyword, setKeyword] = useState("");
@@ -514,6 +516,7 @@ export default function VehiclesClient({
               sector={sectorFilter}
               assetTypes={["Patrol Car", "Armored Vehicle", "Other"]}
               filter={tableFilter}
+              canSetLocation={canSetLocation}
             />
           </div>
 

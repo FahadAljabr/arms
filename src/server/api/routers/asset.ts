@@ -87,6 +87,41 @@ export const assetRouter = createTRPCRouter({
 
       return updated;
     }),
+  // Set random location within Riyadh bounds (Admin/Major-General only)
+  setLocation: protectedProcedure
+    .input(z.object({ id: z.number().int().positive() }))
+    .mutation(async ({ ctx, input }) => {
+      if (
+        !ctx.user ||
+        (!ctx.roles?.includes("admin") && !ctx.roles?.includes("major-general"))
+      ) {
+        throw new Error(
+          "Forbidden: only admins and major-generals can set asset locations",
+        );
+      }
+
+      // Generate random coordinates within Riyadh bounds
+      // Riyadh approximate bounds: 24.4°N to 24.9°N, 46.4°E to 47.0°E
+      const minLat = 24.4;
+      const maxLat = 24.9;
+      const minLng = 46.4;
+      const maxLng = 47.0;
+
+      const randomLat = minLat + Math.random() * (maxLat - minLat);
+      const randomLng = minLng + Math.random() * (maxLng - minLng);
+
+      const [updated] = await ctx.db
+        .update(assets)
+        .set({
+          location: [randomLat, randomLng] as [number, number],
+          updatedBy: ctx.user.id,
+        })
+        .where(eq(assets.id, input.id))
+        .returning();
+
+      return updated;
+    }),
+
   // Delete an asset by its ID (Technicians only)
   delete: protectedProcedure
     .input(z.object({ id: z.number().int().positive() }))

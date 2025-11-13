@@ -14,6 +14,7 @@ import {
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
+import { MapPin } from "lucide-react";
 
 type Asset = RouterOutputs["asset"]["getAll"][number];
 
@@ -25,6 +26,7 @@ export type AssetsTableProps = {
   emptyMessage?: string;
   sector?: string;
   assetTypes?: Array<Asset["assetType"]>;
+  canSetLocation?: boolean;
 };
 
 export function AssetsTable({
@@ -34,11 +36,20 @@ export function AssetsTable({
   emptyMessage = "No assets found.",
   sector,
   assetTypes,
+  canSetLocation = false,
 }: AssetsTableProps) {
   const query = sector
     ? api.asset.getBySector.useQuery({ sector })
     : api.asset.getAll.useQuery();
   const { data, isLoading, isError, error, refetch, isFetching } = query;
+
+  const utils = api.useUtils();
+  const setLocationMutation = api.asset.setLocation.useMutation({
+    onSuccess: () => {
+      void utils.asset.getAll.invalidate();
+      void utils.asset.getBySector.invalidate();
+    },
+  });
 
   const [page, setPage] = useState(1);
 
@@ -114,6 +125,8 @@ export function AssetsTable({
                     <TableHead>Sector</TableHead>
                     <TableHead className="text-right">Current KM</TableHead>
                     <TableHead>Last Service</TableHead>
+                    <TableHead>Location</TableHead>
+                    {canSetLocation && <TableHead>Actions</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -136,6 +149,37 @@ export function AssetsTable({
                           ? new Date(a.lastServiceAt).toLocaleDateString()
                           : "—"}
                       </TableCell>
+                      <TableCell>
+                        {a.location && a.location.length === 2 ? (
+                          <Badge variant="outline" className="text-xs">
+                            <MapPin className="mr-1 h-3 w-3" />
+                            Set
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">
+                            Not set
+                          </span>
+                        )}
+                      </TableCell>
+                      {canSetLocation && (
+                        <TableCell>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() =>
+                              setLocationMutation.mutate({ id: a.id })
+                            }
+                            disabled={setLocationMutation.isPending}
+                            className="h-8 px-3"
+                          >
+                            <MapPin className="mr-1 h-3 w-3" />
+                            {a.location && a.location.length === 2
+                              ? "Update"
+                              : "Set"}{" "}
+                            Location
+                          </Button>
+                        </TableCell>
+                      )}
                     </TableRow>
                   ))}
                 </TableBody>
