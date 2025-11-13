@@ -55,6 +55,11 @@ export const assets = createTable(
     status: assetStatusEnum("status").notNull().default("Operational"),
     sector: t.text().notNull(),
     currentKm: t.integer(),
+    location: t.geometry("coordinantes", {
+      type: "point",
+      mode: "tuple",
+      srid: 4326,
+    }),
     lastServiceAt: t.timestamp({ withTimezone: true }),
     commissionedAt: t.timestamp({ withTimezone: true }),
     decommissionedAt: t.timestamp({ withTimezone: true }),
@@ -72,6 +77,7 @@ export const assets = createTable(
   (tbl) => [
     index("assets_sector_idx").on(tbl.sector),
     index("assets_status_idx").on(tbl.status),
+    index("spatial_index").using("gist", tbl.location),
   ],
 );
 
