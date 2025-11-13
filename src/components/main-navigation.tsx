@@ -9,8 +9,10 @@ import {
 } from "~/components/ui/navigation-menu";
 import { cn } from "~/lib/utils";
 import { ThemeToggle } from "~/components/theme-toggle";
+import { withAuth } from "@workos-inc/authkit-nextjs";
 
-export function MainNavigation() {
+export async function MainNavigation() {
+  const { roles } = await withAuth();
   return (
     <div className="bg-background/95 supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50 border-b backdrop-blur">
       <div className="container mx-auto px-4">
@@ -93,6 +95,19 @@ export function MainNavigation() {
               </NavigationMenuItem>
             </NavigationMenuList>
           </NavigationMenu>
+
+          {/* Highest User Role Admin,Major-General, Technician, Officer */}
+          <div className="text-muted-foreground text-sm font-medium">
+            {roles?.includes("admin")
+              ? "Admin"
+              : roles?.includes("major-general")
+                ? "Major General"
+                : roles?.includes("technician")
+                  ? "Technician"
+                  : roles?.includes("officer")
+                    ? "Officer"
+                    : "Guest"}
+          </div>
 
           {/* Theme Toggle and Mobile menu */}
           <div className="flex items-center gap-2">
