@@ -108,9 +108,9 @@ export default function MapClient({}: AssetMapProps) {
     assets?.filter((asset) => asset.location && asset.location.length === 2) ??
     [];
 
-  // Default center (you can adjust this to your preferred location)
-  const defaultCenter: [number, number] = [24.4539, 39.6128]; // Riyadh, Saudi Arabia
-  const defaultZoom = 10;
+  // Default center - Riyadh, Saudi Arabia
+  const defaultCenter: [number, number] = [24.7136, 46.6753]; // Riyadh city center
+  const defaultZoom = 11;
 
   return (
     <div className="relative h-full w-full">
