@@ -49,7 +49,9 @@ const getIconByAssetType = (assetType: string) => {
   }
 };
 
-const getColorByAssetType = (assetType: string): "blue" | "destructive" | "secondary" => {
+const getColorByAssetType = (
+  assetType: string,
+): "blue" | "destructive" | "secondary" => {
   if (
     assetType.toLowerCase().includes("vehicle") ||
     assetType.toLowerCase().includes("car")
@@ -160,9 +162,7 @@ export default function MapClient({}: AssetMapProps) {
                 <div className="space-y-2 p-2">
                   <div className="flex items-center gap-2">
                     <h3 className="font-semibold">Asset #{asset.id}</h3>
-                    <Badge
-                      variant={getColorByAssetType(asset.assetType)}
-                    >
+                    <Badge variant={getColorByAssetType(asset.assetType)}>
                       {asset.assetType}
                     </Badge>
                   </div>
